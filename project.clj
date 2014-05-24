@@ -1,4 +1,4 @@
-(defproject collective "0.1.0-SNAPSHOT"
+(defproject link-collective "0.1.0-SNAPSHOT"
 
   :description "FIXME: write description"
 

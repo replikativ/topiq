@@ -1,6 +1,6 @@
-(ns collective.core-test
+(ns link-collective.core-test
   (:require [clojure.test :refer :all]
-            [collective.core :refer :all]))
+            [link-collective.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."
