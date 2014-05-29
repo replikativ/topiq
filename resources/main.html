@@ -6,17 +6,17 @@
     <link id="bootstrap-theme-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"/>
   </head>
    <body>
-   <!-- entry list -->
-   <ul class="list-group">
+   <!-- link collection -->
+   <ul class="list-group" id="link-collection">
 
-     <!--entry title-->
+     <!--link item-->
      <li class="list-group-item link-item">
        <!-- entry comment counter -->
        <span class="badge link-comment-counter">42</span>
        <!-- entry comment counter end -->
 
        <!-- link header -->
-       <div class="link-header" data-toggle="collapse" data-parent="" href="#entry-ID">
+       <div class="link-header" data-toggle="collapse" data-parent="#link-collection" href="#entry-ID">
          <!-- entry title -->
          <h4 class="list-group-item-heading link-header-text">TITLE</h4>
          <!-- entry title end -->
@@ -28,8 +28,8 @@
              <ul class="list-inline link-header-hashtag-list">
 
                <!-- title hashtag item -->
-               <li>
-                 <small class="link-header-hashtag-item">
+               <li class="link-header-hashtag-item">
+                 <small class="link-header-hashtag-item-text">
                    #hashtag-1
                  </small>
                </li>
@@ -55,26 +55,32 @@
        <!--link header end-->
 
        <!-- detail -->
-       <div class="panel-collapse collapse" class="link-detail" id="entry-ID">
-         <ul class="list-group">
+       <div class="panel-collapse collapse link-detail" id="entry-ID">
+         <!-- link detail item -->
+         <a class="link-detail-url" href="#" target="_blank">
+         </a>
+         <!-- link detail end -->
 
-           <!-- link detail item -->
-           <li class="list-group-item link-detail-text">
-             DETAIL
-           </li>
-           <!-- link detail end -->
+         <!-- link detail item -->
+         <p class="link-detail-text">
+           DETAIL
+         </p>
+         <!-- link detail end -->
 
+         <ul class="list-group link-detail-comment-list">
            <!-- link detail comment item end -->
            <li class="list-group-item link-detail-comment-item">
+             <p class="link-detail-comment-text">
              COMMENT
+             </p>
 
              <!-- aditional infos -->
              <ul class="list-inline">
 
                <!-- link detail comment user -->
                <li>
-                 <small class="link-detail-comment-item-user">
-                   <em class="text-primary">
+                 <small>
+                   <em class="text-primary link-detail-comment-user">
                      USER
                    </em>
                  </small>
@@ -83,7 +89,7 @@
 
                <!-- link detail comment timestamp -->
                <li>
-                 <small class="link-detail-comment-item-timestamp">
+                 <small class="link-detail-comment-timestamp">
                    TIMESTAMP
                  </small>
                </li>
@@ -108,6 +114,7 @@
    <!-- primary input -->
    <div class="input-group input-group-lg">
      <textarea class="form-control" type="text" id="general-input-form" rows="2" style="resize:vertical;" placeholder="What do you think?"></textarea>
+    <!-- <input type="text" class="form-control" placeholder="Username"> -->
      <span class="input-group-btn">
        <button class="btn btn-default" type="button">
          <span class="glyphicon glyphicon-send"></span>
