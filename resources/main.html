@@ -1,0 +1,129 @@
+<html>
+   <head>
+    <meta title="generator" content="content" charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link id="bootstrap-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
+    <link id="bootstrap-theme-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"/>
+  </head>
+   <body>
+   <!-- link collection -->
+   <ul class="list-group" id="link-collection">
+
+     <!--link item-->
+     <li class="list-group-item link-item">
+       <!-- entry comment counter -->
+       <span class="badge link-comment-counter">42</span>
+       <!-- entry comment counter end -->
+
+       <!-- link header -->
+       <div class="link-header" data-toggle="collapse" data-parent="#link-collection" href="#entry-ID">
+         <!-- entry title -->
+         <h4 class="list-group-item-heading link-header-text">TITLE</h4>
+         <!-- entry title end -->
+
+         <div class="row">
+           <div class="col-md-9 col-xs-9">
+
+             <!-- hashtag list -->
+             <ul class="list-inline link-header-hashtag-list">
+
+               <!-- title hashtag item -->
+               <li class="link-header-hashtag-item">
+                 <small class="link-header-hashtag-item-text">
+                   #hashtag-1
+                 </small>
+               </li>
+               <!-- title hashtag item end -->
+
+             </ul>
+             <!-- hashtag list end -->
+
+           </div>
+           <div class="col-md-3 col-xs-3">
+
+             <!-- title user -->
+             <p class="text-right text-primary">
+               <em class="link-header-user">
+                 Eve
+               </em>
+             </p>
+             <!-- title user end -->
+
+           </div>
+         </div>
+       </div>
+       <!--link header end-->
+
+       <!-- detail -->
+       <div class="panel-collapse collapse link-detail" id="entry-ID">
+         <!-- link detail item -->
+         <a class="link-detail-url" href="#" target="_blank">
+         </a>
+         <!-- link detail end -->
+
+         <!-- link detail item -->
+         <p class="link-detail-text">
+           DETAIL
+         </p>
+         <!-- link detail end -->
+
+         <ul class="list-group link-detail-comment-list">
+           <!-- link detail comment item end -->
+           <li class="list-group-item link-detail-comment-item">
+             <p class="link-detail-comment-text">
+             COMMENT
+             </p>
+
+             <!-- aditional infos -->
+             <ul class="list-inline">
+
+               <!-- link detail comment user -->
+               <li>
+                 <small>
+                   <em class="text-primary link-detail-comment-user">
+                     USER
+                   </em>
+                 </small>
+               </li>
+               <!-- link detail comment user end -->
+
+               <!-- link detail comment timestamp -->
+               <li>
+                 <small class="link-detail-comment-timestamp">
+                   TIMESTAMP
+                 </small>
+               </li>
+               <!-- link detail comment timestamp end -->
+
+             </ul>
+             <!-- aditional infos end -->
+
+           </li>
+           <!-- link detail comment item end -->
+
+         </ul>
+       </div>
+       <!-- detail end-->
+
+     </li>
+     <!--link item end -->
+
+   </div>
+   <!-- entry list end -->
+
+   <!-- primary input -->
+   <div class="input-group input-group-lg">
+     <textarea class="form-control" type="text" id="general-input-form" rows="2" style="resize:vertical;" placeholder="What do you think?"></textarea>
+    <!-- <input type="text" class="form-control" placeholder="Username"> -->
+     <span class="input-group-btn">
+       <button class="btn btn-default" type="button">
+         <span class="glyphicon glyphicon-send"></span>
+       </button>
+     </span>
+   </div>
+   <!-- primary input -->
+
+   <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+   <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+   </body>
+</html>

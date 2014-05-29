@@ -63,7 +63,8 @@
                           "master"))))
 
 
-(let [schema {:votes {:db/cardinality :db.cardinality/many}
+(let [schema {:up-votes {:db/cardinality :db.cardinality/many}
+              :down-votes {:db/cardinality :db.cardinality/many}
               :comments {:db/cardinality :db.cardinality/many}
               :hashtags {:db/cardinality :db.cardinality/many}}
       conn   (d/create-conn schema)
@@ -72,30 +73,29 @@
                                              :content "http://spiegel.de #spon"
                                              :author "bob@polyc0l0r.net"
                                              :ts (js/Date.)
-                                             :hashtags [:#spon]
-                                             :comments [{:content "this is boring :-/"
-                                                         :author "kordano@polyc0l0r.net"
-                                                         :ts (js/Date.)}]
-                                             :votes [{:author "kordano@polyc0l0r.net"
-                                                      :type :down}]}])) ]
-  (pr-str init-db)
+                                             :hashtags #{:#spon}
+                                             :comments #{}
+                                             :votes #{{:author "kordano@polyc0l0r.net"
+                                                       :type :down}}}
+                                            {:db/id 1
+                                             :content "this is boring :-/"
+                                             :up-votes #{"kordano@polyc0l0r.net"}
+                                             :down-votes #{"bob@polyc0l0r.net"}
+                                             :author "kordano@polyc0l0r.net"
+                                             :ts (js/Date.)}]))]
+  #_(hasch.platform/as-value init-db)
   #_(go (<! (s/create-repo! stage
                             "eve@polyc0l0r.net"
                             "link-collective discourse."
                             init-db
                             "master")))
-  #_(d/q '[:find ?c ?e
+  init-db
+  #_(d/q '[:find ?c ?e ?v
          :where
          [?e :author "bob@polyc0l0r.net"]
-         [?e :content ?c]]
+         [?e :comments ?c]
+         [?c :up-votes ?v]]
        init-db))
-
-
-(cljs.reader/register-tag-parser! "datascript.Datom" d/map->Datom)
-(cljs.reader/register-tag-parser! "datascript.DB" d/map->DB)
-
-
-(implements? IRecord (read-string "#datascript.DB{:schema {:votes {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :ea {1 {:comments #{#datascript.Datom{:e 1, :a :comments, :v {:content \"this is boring :-/\", :author \"kordano@polyc0l0r.net\", :ts #inst \"2014-05-26T17:29:27.972-00:00\"}, :tx 536870913, :added true}}, :title #{#datascript.Datom{:e 1, :a :title, :v \"Spiegel Online\", :tx 536870913, :added true}}, :content #{#datascript.Datom{:e 1, :a :content, :v \"http://spiegel.de #spon\", :tx 536870913, :added true}}, :ts #{#datascript.Datom{:e 1, :a :ts, :v #inst \"2014-05-26T17:29:27.972-00:00\", :tx 536870913, :added true}}, :hashtags #{#datascript.Datom{:e 1, :a :hashtags, :v :#spon, :tx 536870913, :added true}}, :votes #{#datascript.Datom{:e 1, :a :votes, :v {:author \"kordano@polyc0l0r.net\", :type :down}, :tx 536870913, :added true}}, :author #{#datascript.Datom{:e 1, :a :author, :v \"bob@polyc0l0r.net\", :tx 536870913, :added true}}}}, :av {:title {\"Spiegel Online\" #{#datascript.Datom{:e 1, :a :title, :v \"Spiegel Online\", :tx 536870913, :added true}}}, :content {\"http://spiegel.de #spon\" #{#datascript.Datom{:e 1, :a :content, :v \"http://spiegel.de #spon\", :tx 536870913, :added true}}}, :author {\"bob@polyc0l0r.net\" #{#datascript.Datom{:e 1, :a :author, :v \"bob@polyc0l0r.net\", :tx 536870913, :added true}}}, :ts {#inst \"2014-05-26T17:29:27.972-00:00\" #{#datascript.Datom{:e 1, :a :ts, :v #inst \"2014-05-26T17:29:27.972-00:00\", :tx 536870913, :added true}}}, :hashtags {:#spon #{#datascript.Datom{:e 1, :a :hashtags, :v :#spon, :tx 536870913, :added true}}}, :comments {{:content \"this is boring :-/\", :author \"kordano@polyc0l0r.net\", :ts #inst \"2014-05-26T17:29:27.972-00:00\"} #{#datascript.Datom{:e 1, :a :comments, :v {:content \"this is boring :-/\", :author \"kordano@polyc0l0r.net\", :ts #inst \"2014-05-26T17:29:27.972-00:00\"}, :tx 536870913, :added true}}}, :votes {{:author \"kordano@polyc0l0r.net\", :type :down} #{#datascript.Datom{:e 1, :a :votes, :v {:author \"kordano@polyc0l0r.net\", :type :down}, :tx 536870913, :added true}}}}, :max-eid 1, :max-tx 536870913}"))
 
 #_(go (def store
         (<! (new-mem-store
