@@ -9,3 +9,5 @@ pom.xml.asc
 /.nrepl-port
 /resources/public/static
 /resources/public/js
+/out
+/.repl
