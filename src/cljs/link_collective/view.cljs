@@ -71,9 +71,3 @@
 
 (deftemplate main-view "main.html" [data]
   {[:.list-group] (substitute (map #(link-item %) data))})
-
-
-(om/root
- #(om/component (main-view %))
- test-data
- {:target (. js/document (getElementById "main-container"))})
