@@ -58,10 +58,13 @@
 
 (def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-]+)*(/[\w-\.]+)*")
 
+(re-seq #"#[\w\d-_]+" "#hello")
+
 (defn add-post [stage e]
   (let [post-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
+        hash-tags (re-seq #"#[\w\d-_]+" text)
         urls (->> text
                   (re-seq url-regexp)
                   (map first))
@@ -71,12 +74,16 @@
                         ["eve@polyc0l0r.net"
                          #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                          "master"]
-                        [{:db/id post-id
-                          :title (apply str (take 10 text))
-                          :detail-url (first urls)
-                          :detail-text text
-                          :user user
-                          :ts ts}]
+                        (concat [{:db/id post-id
+                                  :title (str (apply str (take 40 text)) "...")
+                                  :detail-url (first urls)
+                                  :detail-text  text
+                                  :user user
+                                  :ts ts}]
+                                (map (fn [t] {:db/id (uuid)
+                                             :post post-id
+                                             :tag (keyword t)
+                                             :ts ts}) hash-tags))
                         '(fn [old params]
                            (:db-after (d/transact old params)))))
         (<! (s/commit! stage
@@ -185,6 +192,15 @@
                             #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                             "master"])))
 
+  (d/q '[:find ?h ?tag
+         :in $
+         :where
+         [?h :tag ?tag]]
+       (get-in @stage [:volatile :val
+                       "eve@polyc0l0r.net"
+                       #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                       "master"]))
+
   (d/q '[:find ?p (max 10 ?t)
          :in $ ?amount
          :where [?h :post ?p]
@@ -205,26 +221,25 @@
       (om/transact app)
 
       (recur (<! val-ch))))
-[{:db/id post-id
-                          :title "How to get a Designer"
-                          :detail-url "https://medium.com/coding-design/how-to-get-a-designer-b3afdf5a853d"
-                          :detail-text "Just some thoughts ..."
-                          :user "jane"
-                          :ts ts}
-                         {:db/id (uuid)
-                          :post post-id
-                          :content "awesome :D"
-                          :user "adam"
-                          :date "today"}
-                         {:db/id (uuid)
-                          :post post-id
-                          :tag :#coding}
-                         {:db/id (uuid)
-                          :post post-id
-                          :tag :#design}
-                         {:db/id (uuid)
-                          :post post-id
-                          :user "adam"
-                          :text "awesome :D"
-                          :date "today"}]
-  )
+  [{:db/id post-id
+    :title "How to get a Designer"
+    :detail-url "https://medium.com/coding-design/how-to-get-a-designer-b3afdf5a853d"
+    :detail-text "Just some thoughts ..."
+    :user "jane"
+    :ts ts}
+   {:db/id (uuid)
+    :post post-id
+    :content "awesome :D"
+    :user "adam"
+    :date "today"}
+   {:db/id (uuid)
+    :post post-id
+    :tag :#coding}
+   {:db/id (uuid)
+    :post post-id
+    :tag :#design}
+   {:db/id (uuid)
+    :post post-id
+    :user "adam"
+    :text "awesome :D"
+    :date "today"}])
