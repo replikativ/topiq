@@ -1,6 +1,7 @@
 (ns link-collective.core
   (:require [link-collective.view :refer [main-view]]
             [clojure.data :refer [diff]]
+            [domina :as dom]
             [figwheel.client :as figw :include-macros true]
             [weasel.repl :as ws-repl]
             [hasch.core :refer [uuid]]
@@ -39,8 +40,6 @@
               (fn [old params]
                 (:db-after (d/transact old params)))})
 
-(def val-ch (chan))
-
 #_(let [schema {:up-votes {:db/cardinality :db.cardinality/many}
                 :down-votes {:db/cardinality :db.cardinality/many}
                 :posts {:db/cardinality :db.cardinality/many}
@@ -57,6 +56,33 @@
 (read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
 
 
+(def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-]+)*(/[\w-\.]+)*")
+
+(defn add-post [stage e]
+  (let [post-id (uuid)
+        ts (js/Date.)
+        text (dom/value (dom/by-id "general-input-form"))
+        urls (->> text
+                  (re-seq url-regexp)
+                  (map first))
+        user (get-in @stage [:config :user])]
+    (dom/set-value! (dom/by-id "general-input-form") "")
+    (go (<! (s/transact stage
+                        ["eve@polyc0l0r.net"
+                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                         "master"]
+                        [{:db/id post-id
+                          :title (apply str (take 10 text))
+                          :detail-url (first urls)
+                          :detail-text text
+                          :user user
+                          :ts ts}]
+                        '(fn [old params]
+                           (:db-after (d/transact old params)))))
+        (<! (s/commit! stage
+                       {"eve@polyc0l0r.net"
+                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
+
 (go
   (def store
     (<! (new-mem-store
@@ -68,15 +94,14 @@
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
 
-  (async/tap (get-in @stage [:volatile :val-mult]) val-ch)
-
   (s/subscribe-repos! stage
                       {"eve@polyc0l0r.net"
                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116"
                         #{"master"}}})
 
+
   (om/root
-   (fn [stage-value owner]
+   (fn [stage-cursor owner]
      (om/component
       (main-view
        (let [db (get-in @stage
@@ -85,49 +110,18 @@
                          #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                          "master"])
              qr (map (partial zipmap [:id :title :detail-url :detail-text :user])
-                     (d/q '[:find ?p ?title ?dtext ?durl ?user
+                     (d/q '[:find ?p ?title ?durl ?dtext ?user
                             :where
                             [?p :user ?user]
                             [?p :detail-url ?durl]
                             [?p :detail-text ?dtext]
                             [?p :title ?title]]
                           db))]
-         qr))))
+         qr)
+       (partial add-post stage))))
    stage
-   {:target (. js/document (getElementById "main-container"))})
+   {:target (. js/document (getElementById "main-container"))}))
 
-  (<! (timeout 500))
-
-  (let [post-id (uuid)
-        ts (js/Date.)]
-    (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                         "master"]
-                        [{:db/id post-id
-                          :title "How to get a Designer"
-                          :detail-url "https://medium.com/coding-design/how-to-get-a-designer-b3afdf5a853d"
-                          :detail-text "Just some thoughts ..."
-                          :user "jane"
-                          :ts ts}
-                         {:db/id (uuid)
-                          :post post-id
-                          :content "awesome :D"
-                          :user "adam"
-                          :date "today"}
-                         {:db/id (uuid)
-                          :post post-id
-                          :tag :#coding}
-                         {:db/id (uuid)
-                          :post post-id
-                          :tag :#design}
-                         {:db/id (uuid)
-                          :post post-id
-                          :user "adam"
-                          :text "awesome :D"
-                          :date "today"}]
-                        '(fn [old params]
-                           (:db-after (d/transact old params))))))))
 
 
 
@@ -211,5 +205,26 @@
       (om/transact app)
 
       (recur (<! val-ch))))
-
+[{:db/id post-id
+                          :title "How to get a Designer"
+                          :detail-url "https://medium.com/coding-design/how-to-get-a-designer-b3afdf5a853d"
+                          :detail-text "Just some thoughts ..."
+                          :user "jane"
+                          :ts ts}
+                         {:db/id (uuid)
+                          :post post-id
+                          :content "awesome :D"
+                          :user "adam"
+                          :date "today"}
+                         {:db/id (uuid)
+                          :post post-id
+                          :tag :#coding}
+                         {:db/id (uuid)
+                          :post post-id
+                          :tag :#design}
+                         {:db/id (uuid)
+                          :post post-id
+                          :user "adam"
+                          :text "awesome :D"
+                          :date "today"}]
   )

@@ -21,6 +21,7 @@
                  [enlive "1.1.5"]
                  [compojure "1.1.6"]
 
+                 [domina "1.0.2"]
                  [datascript "0.1.4"]
                  [om "0.6.3"]
                  [kioo "0.4.0"]
