@@ -9,7 +9,7 @@
             [geschichte.sync :refer [server-peer client-peer]]
             [geschichte.platform :refer [create-http-kit-handler!]]
             [konserve.store :refer [new-mem-store]]
-            [konserve.platform :refer [new-couch-store]]
+            [konserve.platform :refer [new-couch-store *read-opts*]]
             [compojure.handler :refer [site api]]
             [org.httpkit.server :refer [with-channel on-close on-receive run-server send!]]
             [ring.util.response :as resp]
@@ -38,11 +38,11 @@
 
 ;; supply some store
 
-(def store (<!! (new-mem-store)
-            #_(new-couch-store
-                 (couch (utils/url (utils/url (str "http://" (or (System/getenv "DB_PORT_5984_TCP_ADDR")
-                                                                 "localhost") ":5984"))
-                                   "bookmarks")))))
+(def store #_(<!! (new-mem-store))
+  (<!! (new-couch-store
+        (couch (utils/url (utils/url (str "http://" (or (System/getenv "DB_PORT_5984_TCP_ADDR")
+                                                        "localhost") ":5984"))
+                          "link-collective")))))
 
 
 ;; start synching
@@ -106,4 +106,6 @@
   (info (first args))
   (start-server port))
 
-#_(start-server 8080)
+(comment
+  (def server (start-server 8080))
+  (server))
