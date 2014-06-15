@@ -22,6 +22,7 @@
                  [compojure "1.1.6"]
 
                  [domina "1.0.2"]
+                 [prismatic/dommy "0.1.2"]
                  [datascript "0.1.4"]
                  [om "0.6.3"]
                  [kioo "0.4.0"]
@@ -29,7 +30,7 @@
                  [com.facebook/react "0.9.0.1"]
                  [net.polyc0l0r/geschichte "0.1.0-SNAPSHOT"]
 
-                 [weasel "0.2.0"]]
+                 [weasel "0.2.1"]]
 
   :min-lein-version "2.0.0"
 
