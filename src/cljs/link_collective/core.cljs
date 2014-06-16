@@ -19,6 +19,10 @@
 
 (enable-console-print!)
 
+(def uri (goog.Uri. js/document.URL))
+
+(def ssl? (= (.getScheme uri) "https"))
+
 ;; fire up repl
 #_(do
     (ns weasel.startup)
@@ -55,10 +59,8 @@
                             "master"))))
 
 
-(def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-]+)*(/[\w-\.]+)*")
+(def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-?#]+)*(/[\w-\.]+)*")
 
-
-(def app-state (atom nil))
 
 (defn add-post [stage e]
   (let [post-id (uuid)
@@ -143,7 +145,14 @@
 
   (<! (timeout 500))
 
-  (<! (s/connect! stage "ws://localhost:8080/geschichte/ws"))
+  (<! (s/connect!
+       stage
+       (str
+        (if ssl?  "wss://" "ws://")
+        (.getDomain uri)
+        ":"
+        8080 #_(.getPort uri)
+        "/geschichte/ws")))
 
 
   (defn collection-view [app owner]
@@ -154,7 +163,7 @@
          :add-post (partial add-post stage)
          :add-comment (partial add-comment stage)})
       om/IRenderState
-      (render-state [this {:keys [selected-entry] :as state}]
+      (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
         (om/build
          main-view
          app
@@ -170,7 +179,6 @@
 
 (comment
   (def eve-data (get-in @stage [:volatile :val-atom]))
-
 
   (let [db (get-in @eve-data ["eve@polyc0l0r.net"
                                      #uuid "b09d8708-352b-4a71-a845-5f838af04116"
@@ -253,7 +261,5 @@
             (get-in @eve-data ["eve@polyc0l0r.net"
                                #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                                "master"])))
-
-
 
 )
