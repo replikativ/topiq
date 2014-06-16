@@ -14,7 +14,7 @@
 
 (println "Resistance is futile!")
 
-(fw/watch-and-reload
+#_(fw/watch-and-reload
   ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
  :jsload-callback (fn [] (print "reloaded"))) ;; optional callback
 
@@ -61,7 +61,7 @@
   [comment]
   {[:.link-detail-comment-text] (content (:content comment))
    [:.link-detail-comment-user] (content (:user comment))
-   [:.link-detail-comment-timestamp] (content (:ts comment))})
+   [:.link-detail-comment-timestamp] (content (str (:ts comment)))})
 
 
 (defsnippet link-header-hashtag "main.html" [:.link-header-hashtag-item]
@@ -121,7 +121,7 @@
 (defsnippet link-item "main.html" [:.link-item]
   [record app owner]
   {[:.link-item] (set-attr "id" (str "link-item-" (:id record)))
-   [:.link-comment-counter] (content (-> record :comments count))
+   [:.link-comment-counter] (content (-> (get-comments (:id record) app) count))
    [:.link-header] (substitute (link-header record owner))
    [:.link-detail] (substitute (link-detail record app))})
 
