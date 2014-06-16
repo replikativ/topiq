@@ -1,6 +1,6 @@
 (ns link-collective.view
   (:require [figwheel.client :as fw :include-macros true]
-            [kioo.om :refer [content set-attr do-> substitute listen prepend append html remove-class]]
+            [kioo.om :refer [content set-attr do-> substitute listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
             [datascript :as d]
             [dommy.utils :as utils]
@@ -43,15 +43,17 @@
             (get-in stage ["eve@polyc0l0r.net"
                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                            "master"]))
-        result (map (partial zipmap [:id :post :content :user :ts])
-             (d/q '[:find ?p ?pid ?content ?user ?ts
-                    :in $
-                    :where
-                    [?p :post ?pid]
-                    [?p :content ?content]
-                    [?p :user ?user]
-                    [?p :ts ?ts]]
-                  db))]
+        result (sort-by
+                :ts
+                (map (partial zipmap [:id :post :content :user :ts])
+                     (d/q '[:find ?p ?pid ?content ?user ?ts
+                            :in $
+                            :where
+                            [?p :post ?pid]
+                            [?p :content ?content]
+                            [?p :user ?user]
+                            [?p :ts ?ts]]
+                          db)))]
     (filter #(= (:post %) post-id) result)))
 
 
@@ -78,29 +80,39 @@
 
 (defsnippet link-header "main.html" [:.link-header]
   [record owner]
-  {[:.link-header] (do->
-                    (listen :on-click
-                            (fn [e]
-                              (let [selected-entries (om/get-state owner :selected-entries)]
-                                (if (some #{(:id record)} selected-entries)
-                                  (do
-                                    (dommy/remove-class! (sel1 (str "#link-item-" (:id record))) :selected-entry)
-                                    (if (> (count selected-entries) 1)
-                                      (dommy/add-class! (sel1 (str "#link-item-" (-> selected-entries butlast last))) :selected-entry))
-                                    (om/set-state!
-                                     owner
-                                     :selected-entries
-                                     (vec (remove #(= % (:id record)) selected-entries))))
-                                  (do
-                                    (doseq [link-header (sel :.link-header)]
-                                      (dommy/remove-class! link-header :selected-entry))
-                                    (dommy/add-class! (sel1 (str "#link-item-" (:id record))) :selected-entry)
-                                    (om/set-state!
-                                     owner
-                                     :selected-entries
-                                     (conj selected-entries (:id record))))))))
-                    (set-attr "id" (str "link-item-" (:id record)))
-                    (set-attr "href" (str "#link-detail-" (:id record))))
+  {[:.link-header]
+   (do->
+    (listen
+     :on-click
+     (fn [e]
+       (let [selected-entries (om/get-state owner :selected-entries)]
+         (if (some #{(:id record)} selected-entries)
+           (do
+             (dommy/remove-class! (sel1 (str "#link-item-" (:id record))) :selected-entry)
+             (if (> (count selected-entries) 1)
+               (dommy/add-class! (sel1 (str "#link-item-" (-> (remove #(= % (:id record)) selected-entries) last))) :selected-entry)
+               (do
+                 (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a new post ...")
+                 (dommy/remove-class! (sel1 :#send-button-icon) :glyphicon-comment)
+                 (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-send)))
+             (om/set-state!
+              owner
+              :selected-entries
+              (vec (remove #(= % (:id record)) selected-entries))))
+           (do
+             (doseq [link-header (sel :.link-item)]
+               (dommy/remove-class! link-header :selected-entry))
+             (dommy/add-class! (sel1 (str "#link-item-" (:id record))) :selected-entry)
+             (if (empty? selected-entries)
+               (do
+                 (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a comment...")
+                 (dommy/remove-class! (sel1 :#send-button-icon) :glyphicon-send)
+                 (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-comment)))
+             (om/set-state!
+              owner
+              :selected-entries
+              (conj selected-entries (:id record))))))))
+    (set-attr "href" (str "#link-detail-" (:id record))))
    [:.link-header-text] (content (:title record))
    [:.link-header-user] (content (:user record))
    [:.link-header-hashtag-list] (content (map link-header-hashtag (:hashtags record)))})
@@ -108,7 +120,8 @@
 
 (defsnippet link-item "main.html" [:.link-item]
   [record app owner]
-  {[:.link-comment-counter] (content (-> record :comments count))
+  {[:.link-item] (set-attr "id" (str "link-item-" (:id record)))
+   [:.link-comment-counter] (content (-> record :comments count))
    [:.link-header] (substitute (link-header record owner))
    [:.link-detail] (substitute (link-detail record app))})
 
