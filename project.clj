@@ -32,6 +32,10 @@
 
                  [weasel "0.2.1"]]
 
+  :main link-collective.core
+
+  :uberjar-name "link-collective-standalone.jar"
+
   :min-lein-version "2.0.0"
 
   :source-paths ["src/cljs" "src/clj"]

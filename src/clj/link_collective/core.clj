@@ -23,50 +23,38 @@
             [clojure.tools.logging :refer [info warn error]]))
 
 
-
-(def behind-proxy? (or (System/getenv "SHELF_IS_BEHIND_PROXY")
-                       false))
-
-(def proto (or (System/getenv "SHELF_PROTO")
-               "http"))
-
-(def host (or (System/getenv "SHELF_HOST")
-              "localhost"))
-
-(def port (Integer.
-           (or (System/getenv "SHELF_PORT")
-               "8080")))
-
-;; supply some store
-
-(def tag-table (atom {'datascript.Datom
-                      (fn [val] (info "DATASCRIPT-DATOM:" val)
-                        (konserve.literals.TaggedLiteral. 'datascript.Datom val))}))
-
-#_(reset! tag-table  {'datascript.Datom
-                      (fn [val] (error "DATASCRIPT-DATOM:" val)
-                        (konserve.literals.TaggedLiteral. 'datascript.Datom val))})
-
-(def store #_(<!! (new-mem-store))
-  (<!! (new-couch-store
-        (couch (utils/url (utils/url (str "http://" (or (System/getenv "DB_PORT_5984_TCP_ADDR")
-                                                        "localhost") ":5984"))
-                          "link-collective"))
-        tag-table)))
+(def server-state (atom nil))
 
 
-;; start synching
-(def peer
-  (server-peer (create-http-kit-handler! (str (if (= proto "https")
-                                                "wss" "ws") "://" host ":" port "/geschichte/ws")
-                                         tag-table)
-               store))
+(defn create-store
+  "Creates a konserve store"
+  [state]
+  (swap!
+   state
+   (fn [old new] (assoc-in old [:store] new))
+   #_(<!! (new-mem-store))
+   (<!! (new-couch-store
+             (couch (utils/url (:couchdb-url @state) "link-collective"))
+             (:tag-table @state))))
+  state)
 
 
+(defn create-peer
+  "Creates geschichte server peer"
+  [state]
+  (swap!
+   state
+   (fn [old new] (assoc-in old [:peer] new))
+   (server-peer
+    (create-http-kit-handler!
+     (str (if (= (:proto @state) "https") "wss" "ws")
+          "://" (:host @state)
+          ":" (:port @state)
+          "/geschichte/ws")
+     (:tag-table @state))
+    (:store @state)))
+  state)
 
-(derive ::admin ::user)
-
-;; Websocket requests
 
 (defn fetch-url [url]
   (enlive/html-resource (java.net.URL. url)))
@@ -81,14 +69,18 @@
       first))
 
 
-(defn dispatch-bookmark [{:keys [topic data] :as incoming}]
+(defn dispatch-bookmark
+  "Dispatches websocket packages"
+  [{:keys [topic data] :as incoming}]
   (case topic
     :greeting {:data "Greetings Master!" :topic :greeting}
     :fetch-title {:title (fetch-url-title (:url data))}
     "DEFAULT"))
 
 
-(defn bookmark-handler [request]
+(defn bookmark-handler
+  "Reacts to incoming websocket packages"
+  [request]
   (with-channel request channel
     (on-close channel
               (fn [status]
@@ -104,7 +96,27 @@
 
   (GET "/bookmark/ws" [] bookmark-handler) ;; websocket handling
 
-  (GET "/geschichte/ws" [] (-> @peer :volatile :handler)))
+  (GET "/geschichte/ws" [] (-> @server-state :peer deref :volatile :handler)))
+
+
+(defn read-config [state path]
+  (let [config (-> path slurp read-string
+                   (update-in [:couchdb-url] eval) ;; maybe something better but I don't want to deal withj system vars in here
+                   (assoc :tag-table
+                     (atom {'datascript.Datom
+                            (fn [val] (info "DATASCRIPT-DATOM:" val)
+                              (konserve.literals.TaggedLiteral. 'datascript.Datom val))})))]
+    (swap! state merge config))
+  state)
+
+
+(defn init
+  "Read in config file, create sync store and peer"
+  [state path]
+  (-> state
+      (read-config path)
+      create-store
+      create-peer))
 
 
 (defn start-server [port]
@@ -114,9 +126,17 @@
 
 
 (defn -main [& args]
-  (info (first args))
-  (start-server port))
+  (init server-state (first args))
+  (info (clojure.pprint/pprint @server-state))
+  (start-server (:port @server-state)))
+
 
 (comment
-  (def server (start-server 8080))
-  (server))
+
+  (init server-state "resources/server-config.edn")
+
+  (def server (start-server (:port @server-state)))
+
+  (server)
+
+)

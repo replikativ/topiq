@@ -145,6 +145,7 @@
 
   (<! (timeout 500))
 
+  ;; fix back to functions in production
   (<! (s/connect!
        stage
        (str

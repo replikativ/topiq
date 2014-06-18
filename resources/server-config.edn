@@ -1,0 +1,7 @@
+{:build :dev
+ :behind-proxy false
+ :proto "http"
+ :port 8080
+ :host "localhost" ;; adjust hostname
+ :couchdb-url (str "http://" (or (System/getenv "DB_PORT_5984_TCP_ADDR") "localhost") ":5984")
+ }
