@@ -25,18 +25,27 @@
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                           "master"]))]
+                           "master"]))
+        qr (map (partial zipmap [:id :title :detail-url :detail-text :user :ts])
+                (d/q '[:find ?p ?title ?durl ?dtext ?user ?ts
+                       :where
+                       [?p :user ?user]
+                       [?p :detail-url ?durl]
+                       [?p :detail-text ?dtext]
+                       [?p :title ?title]
+                       [?p :ts ?ts]]
+                     db))]
     (sort-by
      :ts
-     (map (partial zipmap [:id :title :detail-url :detail-text :user :ts])
-          (d/q '[:find ?p ?title ?durl ?dtext ?user ?ts
-                 :where
-                 [?p :user ?user]
-                 [?p :detail-url ?durl]
-                 [?p :detail-text ?dtext]
-                 [?p :title ?title]
-                 [?p :ts ?ts]]
-               db)))))
+     (map (fn [{:keys [id] :as p}]
+            (assoc p :hashtags (first (first (d/q '[:find (distinct ?hashtag)
+                                                    :in $ ?pid
+                                                    :where
+                                                    [?h :post ?pid]
+                                                    [?h :tag ?hashtag]]
+                                                  db
+                                                  id)))))
+          qr))))
 
 (defn get-comments [post-id stage]
   (let [db (om/value
@@ -66,7 +75,7 @@
 
 (defsnippet link-header-hashtag "main.html" [:.link-header-hashtag-item]
   [hashtag]
-  {[:.link-header-hashtag-item-text] (content hashtag)})
+  {[:.link-header-hashtag-item-text] (content (name hashtag))})
 
 
 (defsnippet link-detail "main.html" [:.link-detail]
