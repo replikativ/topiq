@@ -19,7 +19,7 @@
 
 (enable-console-print!)
 
-(def uri (goog.Uri. js/document.URL))
+(def uri (goog.Uri. js/document.Url))
 
 (def ssl? (= (.getScheme uri) "https"))
 
@@ -149,7 +149,7 @@
        stage
        (str
         (if ssl?  "wss://" "ws://")
-        (.getDomain uri)
+        "localhost" #_(.getDomain uri)
         ":"
         8080 #_(.getPort uri)
         "/geschichte/ws")))
