@@ -19,9 +19,10 @@
 
 (enable-console-print!)
 
-(def uri (goog.Uri. js/document.Url))
+(def uri (goog.Uri. js/location.href))
 
 (def ssl? (= (.getScheme uri) "https"))
+
 
 ;; fire up repl
 #_(do
@@ -36,9 +37,14 @@
 ;; - load in templates
 
 ;; weasel websocket
-(ws-repl/connect "ws://localhost:17782" :verbose true)
+(if (= "localhost" (.getDomain uri))
+  (do
+    (figw/watch-and-reload
+     ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
+     :jsload-callback (fn [] (print "reloaded")))
+    (ws-repl/connect "ws://localhost:17782" :verbose true)))
 
-(.log js/console "HAIL TO THE LAMBDA!")
+(println "ALLE MACHT DEM KOLLEKTIV!")
 
 (def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
               '(fn [old params]
@@ -150,9 +156,11 @@
        stage
        (str
         (if ssl?  "wss://" "ws://")
-        "localhost" #_(.getDomain uri)
+        (.getDomain uri)
         ":"
-        8080 #_(.getPort uri)
+        (if (= (.getDomain uri) "localhost")
+          8080
+          (.getPort uri))
         "/geschichte/ws")))
 
 
@@ -179,7 +187,6 @@
 
 
 (comment
-  (def eve-data (get-in @stage [:volatile :val-atom]))
 
   (let [db (get-in @eve-data ["eve@polyc0l0r.net"
                                      #uuid "b09d8708-352b-4a71-a845-5f838af04116"

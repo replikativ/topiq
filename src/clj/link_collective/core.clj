@@ -96,7 +96,9 @@
 
   (GET "/bookmark/ws" [] bookmark-handler) ;; websocket handling
 
-  (GET "/geschichte/ws" [] (-> @server-state :peer deref :volatile :handler)))
+  (GET "/geschichte/ws" [] (-> @server-state :peer deref :volatile :handler))
+
+  )
 
 
 (defn read-config [state path]
