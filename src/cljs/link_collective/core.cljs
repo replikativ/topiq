@@ -1,5 +1,5 @@
 (ns link-collective.core
-  (:require [link-collective.view :refer [main-view right-navbar]]
+  (:require [link-collective.view :refer [posts right-navbar general-input]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -13,7 +13,9 @@
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
             [kioo.core :refer [handle-wrapper]]
-            [om.core :as om :include-macros true])
+            [om.core :as om :include-macros true]
+            [om.dom :as dm :include-macros true]
+            )
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 
@@ -161,7 +163,7 @@
         "/geschichte/ws")))
 
 
-  (defn collection-view [app owner]
+  (defn posts-view [app owner]
     (reify
       om/IInitState
       (init-state [_]
@@ -170,11 +172,9 @@
          :add-comment (partial add-comment stage)})
       om/IRenderState
       (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
-        (om/build
-         main-view
-         app
-         {:init-state state}))))
-
+        (dm/div nil
+         (om/build posts app {:init-state state})
+         (general-input state)))))
 
 
   (defn nav-view [app owner]
@@ -193,8 +193,9 @@
            (assoc state :input-placeholder "Punch in email address ...")
            state)))))
 
+
   (om/root
-   collection-view
+   posts-view
     (get-in @stage [:volatile :val-atom])
     {:target (. js/document (getElementById "main-container"))})
 
@@ -254,8 +255,6 @@
     :comments [{:text "lies, all lies ..." :user "adam" :date "yesterday"}
                {:text "Sucker" :user "eve" :date "today"}]
     :hashtags #{"#greenwald" "#snowden" "#nsa"}}]
-
-
 
 
   (let [post-id (uuid)
