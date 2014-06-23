@@ -1,7 +1,8 @@
 (ns link-collective.core
   (:gen-class :main true)
   (:require [clojure.edn :as edn]
-            [net.cgrand.enlive-html :as enlive]
+            [net.cgrand.enlive-html :refer [deftemplate set-attr]]
+            [clojure.java.io :as io]
             [compojure.route :refer [resources]]
             [compojure.core :refer [GET POST defroutes]]
             [geschichte.repo :as repo]
@@ -24,6 +25,16 @@
 
 
 (def server-state (atom nil))
+
+
+(deftemplate static-page
+  (io/resource "public/index.html")
+  []
+  [:#bootstrap-css] (set-attr "href" "static/bootstrap/bootstrap-3.1.1-dist/css/bootstrap.min.css")
+  [:#bootstrap-theme-css] (set-attr "href" "static/bootstrap/bootstrap-3.1.1-dist/css/bootstrap-theme.min.css")
+  [:#react-js] (set-attr "src" "static/react/react-0.9.0.min.js")
+  [:#jquery-js] (set-attr "src" "static/jquery/jquery-1.11.0.min.js")
+  [:#bootstrap-js] (set-attr "src" "static/bootstrap/bootstrap-3.1.1-dist/js/bootstrap.min.js"))
 
 
 (defn create-store
@@ -98,7 +109,9 @@
 
   (GET "/geschichte/ws" [] (-> @server-state :peer deref :volatile :handler))
 
-  )
+  (GET "/*" [] (if (= (:build @server-state) :prod)
+                 (static-page)
+                 (io/resource "public/index.html"))))
 
 
 (defn read-config [state path]
