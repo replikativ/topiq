@@ -177,9 +177,12 @@
         selected-entries (om/get-state owner :selected-entries)]
     (if (= "" username)
       (.log js/console (str selected-entries))
-      (if (empty? selected-entries)
-        (add-post username)
-        (add-comment username (last selected-entries))))))
+      (try
+        (if (empty? selected-entries)
+          (add-post username)
+          (add-comment username (last selected-entries)))
+        (catch js/Object e
+            (js/alert e))))))
 
 
 (deftemplate posts "main.html"

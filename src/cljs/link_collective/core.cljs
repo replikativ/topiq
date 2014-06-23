@@ -13,7 +13,8 @@
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
             [kioo.core :refer [handle-wrapper]]
-            [om.core :as om :include-macros true])
+            [om.core :as om :include-macros true]
+            [om.dom :as omdom])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 
@@ -170,7 +171,12 @@
          :add-comment (partial add-comment stage)})
       om/IRenderState
       (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
-        (om/build posts app {:init-state state}))))
+        (if (= (type (om/value (get-in app ["eve@polyc0l0r.net"
+                                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                            "master"])))
+               geschichte.stage/Conflict)
+          (omdom/div nil (str "Conflict: " (om/value app)))
+          (om/build posts app {:init-state state})))))
 
 
   (defn nav-view [app owner]
@@ -192,8 +198,8 @@
 
   (om/root
    posts-view
-    (get-in @stage [:volatile :val-atom])
-    {:target (. js/document (getElementById "main-container"))})
+   (get-in @stage [:volatile :val-atom])
+   {:target (. js/document (getElementById "main-container"))})
 
 
   (om/root
