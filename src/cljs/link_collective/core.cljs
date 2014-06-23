@@ -82,7 +82,7 @@
                          #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                          "master"]
                         (concat [{:db/id post-id
-                                  :title (str (apply str (take 40 text)) "...")
+                                  :title (str (apply str (take 160 text)) "...")
                                   :detail-url (first urls)
                                   :detail-text  text
                                   :author author
