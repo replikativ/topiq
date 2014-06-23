@@ -65,7 +65,7 @@
                             "master"))))
 
 
-(def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-?#]+)*(/[\w-\.]+)*")
+(def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-?#\.,]+)*(/[\w-\.,]+)*")
 
 
 (defn add-post [stage author]
