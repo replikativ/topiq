@@ -97,7 +97,7 @@
   [comment]
   {[:.comment-text] (content (:content comment))
    [:.comment-author] (content (:author comment))
-   [:.comment-timestamp] (content (str (:ts comment)))})
+   [:.comment-ts] (content (str (:ts comment)))})
 
 
 (defsnippet post-header-hashtag "main.html" [:.post-header-hashtag]
@@ -123,6 +123,7 @@
      (fn [e]
        ;; will cleanup this mess and migrate some of it into view state
        (let [selected-entries (om/get-state owner :selected-entries)]
+         (.log js/console (str selected-entries))
          (if (some #{(:id post)} selected-entries)
            (do
              (dommy/remove-class! (sel1 (str "#post-" (:id post))) :selected-entry)
@@ -160,26 +161,20 @@
    [:.post-detail] (substitute (post-detail post app))})
 
 
-(defsnippet posts "main.html" [:#post-list]
-  [app owner]
-  {[:.list-group] (content (map #(post % app owner) (get-posts app)))})
-
-
-
-;; --- general input templates and functions ---
-
-(defn commit [{:keys [add-post add-comment selected-entries]}]
-  (let [username (.-innerText (sel1 :#nav-current-user))]
+(defn commit [owner]
+  (let [username (.-innerText (sel1 :#nav-current-user))
+        add-post (om/get-state owner :add-post)
+        add-comment (om/get-state owner :add-comment)
+        selected-entries (om/get-state owner :selected-entries)]
     (if (= "" username)
-      (.log js/console "Not logged in!")
+      (.log js/console (str selected-entries))
       (if (empty? selected-entries)
         (add-post username)
         (add-comment username (last selected-entries))))))
 
 
-(defsnippet general-input "main.html" [:.input-group]
-  [state]
-  {[:#general-input-form]
-   (listen :on-key-press #(when (= (.-keyCode %) 10) (commit state)))
-   [:#send-button]
-   (listen :on-click (fn [e] (commit state)))})
+(deftemplate posts "main.html"
+  [app owner]
+  {[:.list-group] (content (map #(post % app owner) (get-posts app)))
+   [:#general-input-form] (listen :on-key-press #(when (= (.-keyCode %) 10) (commit owner)))
+   [:#send-button] (listen :on-click (fn [e] (commit owner)))})

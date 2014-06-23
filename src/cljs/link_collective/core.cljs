@@ -1,5 +1,5 @@
 (ns link-collective.core
-  (:require [link-collective.view :refer [posts right-navbar general-input]]
+  (:require [link-collective.view :refer [posts right-navbar]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -13,9 +13,7 @@
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
             [kioo.core :refer [handle-wrapper]]
-            [om.core :as om :include-macros true]
-            [om.dom :as dm :include-macros true]
-            )
+            [om.core :as om :include-macros true])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 
@@ -172,9 +170,7 @@
          :add-comment (partial add-comment stage)})
       om/IRenderState
       (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
-        (dm/div nil
-         (om/build posts app {:init-state state})
-         (general-input state)))))
+        (om/build posts app {:init-state state}))))
 
 
   (defn nav-view [app owner]
@@ -199,6 +195,7 @@
     (get-in @stage [:volatile :val-atom])
     {:target (. js/document (getElementById "main-container"))})
 
+
   (om/root
    nav-view
    (get-in @stage [:volatile :val-atom])
@@ -206,7 +203,6 @@
 
 
 (comment
-
   (def eve-data (get-in @stage [:volatile :val-atom]))
 
   (let [db (get-in @eve-data ["eve@polyc0l0r.net"
