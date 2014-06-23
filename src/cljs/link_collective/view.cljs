@@ -1,6 +1,6 @@
 (ns link-collective.view
   (:require [figwheel.client :as fw :include-macros true]
-            [kioo.om :refer [content set-attr do-> substitute listen prepend append html remove-class add-class]]
+            [kioo.om :refer [content after set-attr do-> substitute listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
             [datascript :as d]
             [dommy.utils :as utils]
@@ -14,11 +14,6 @@
 
 (println "Resistance is futile!")
 
-#_(fw/watch-and-reload
-  ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
- :jsload-callback (fn [] (print "reloaded"))) ;; optional callback
-
-
 ;; --- datascript queries ---
 
 (defn get-posts [stage]
@@ -28,15 +23,16 @@
                            "master"]))]
     (sort-by
      :ts
-     (map (partial zipmap [:id :title :detail-url :detail-text :user :ts])
-          (d/q '[:find ?p ?title ?durl ?dtext ?user ?ts
+     (map (partial zipmap [:id :title :detail-url :detail-text :author :ts])
+          (d/q '[:find ?p ?title ?durl ?dtext ?author ?ts
                  :where
-                 [?p :user ?user]
+                 [?p :author ?author]
                  [?p :detail-url ?durl]
                  [?p :detail-text ?dtext]
                  [?p :title ?title]
                  [?p :ts ?ts]]
                db)))))
+
 
 (defn get-comments [post-id stage]
   (let [db (om/value
@@ -45,22 +41,55 @@
                            "master"]))
         result (sort-by
                 :ts
-                (map (partial zipmap [:id :post :content :user :ts])
-                     (d/q '[:find ?p ?pid ?content ?user ?ts
+                (map (partial zipmap [:id :post :content :author :ts])
+                     (d/q '[:find ?p ?pid ?content ?author ?ts
                             :in $
                             :where
                             [?p :post ?pid]
                             [?p :content ?content]
-                            [?p :user ?user]
+                            [?p :author ?author]
                             [?p :ts ?ts]]
                           db)))]
     (filter #(= (:post %) post-id) result)))
 
 
+;; --- navbar snippets and templates ---
+(defn handle-text-change [e owner]
+  (om/set-state! owner :input-text (.. e -target -value)))
+
+(deftemplate right-navbar "templates/nav.html"
+  [owner {:keys [set-user? current-user input-placeholder input-text]}]
+  {[:#nav-current-user]
+   (content
+    (html
+     [:a {:href "#"
+          :class (if set-user? "" "navbar-link")
+          :on-click #(om/set-state! owner :set-user? (not set-user?))}
+      [:span.glyphicon.glyphicon-user]])
+    " "
+    current-user)
+
+   [:#nav-input-field]
+   (do->
+    (set-attr :value input-text)
+    (set-attr :placeholder input-placeholder)
+    (listen
+     :on-change #(handle-text-change % owner)
+     :on-key-press
+     #(when (== (.-keyCode %) 13)
+        (when set-user?
+          (om/set-state! owner :set-user? false)
+          (om/set-state! owner :current-user input-text))
+        (om/set-state! owner :input-text "")
+        (om/set-state! owner :input-placeholder "Search ..."))))})
+
+
+;; --- collection snippets and templates ---
+
 (defsnippet link-detail-comment "main.html" [:.link-detail-comment-item]
   [comment]
   {[:.link-detail-comment-text] (content (:content comment))
-   [:.link-detail-comment-user] (content (:user comment))
+   [:.link-detail-comment-user] (content (:author comment))
    [:.link-detail-comment-timestamp] (content (str (:ts comment)))})
 
 
@@ -114,7 +143,7 @@
               (conj selected-entries (:id record))))))))
     (set-attr "href" (str "#link-detail-" (:id record))))
    [:.link-header-text] (content (:title record))
-   [:.link-header-user] (content (:user record))
+   [:.link-header-user] (content (:author record))
    [:.link-header-hashtag-list] (content (map link-header-hashtag (:hashtags record)))})
 
 
@@ -126,14 +155,25 @@
    [:.link-detail] (substitute (link-detail record app))})
 
 
+(defn commit [owner]
+  (let [add-post (om/get-state owner :add-post)
+        add-comment (om/get-state owner :add-comment)
+        selected-entries (om/get-state owner :selected-entries)
+        username (.-innerText (sel1 :#nav-current-user))]
+    (if (= "" username)
+      (.log js/console "Not logged in!")
+      (if (empty? selected-entries)
+        (add-post username)
+        (add-comment username (last selected-entries))))))
+
 (deftemplate main-view "main.html" [app owner]
   {[:.list-group] (content (map #(link-item % app owner) (get-posts app)))
-   [:#send-button] (listen
-                    :on-click
-                    (fn [e]
-                      (let [add-post (om/get-state owner :add-post)
-                            add-comment (om/get-state owner :add-comment)
-                            selected-entries (om/get-state owner :selected-entries)]
-                        (if (empty? selected-entries)
-                          (add-post e)
-                          (add-comment (last selected-entries))))))})
+   [:#send-button]
+   (listen
+    :on-click
+    (fn [e] (commit owner)))
+   [:#general-input-form]
+   (listen
+    :on-key-press
+    #(when (= (.-keyCode %) 10)
+       (commit owner)))})

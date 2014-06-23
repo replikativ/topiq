@@ -1,5 +1,5 @@
 (ns link-collective.core
-  (:require [link-collective.view :refer [main-view]]
+  (:require [link-collective.view :refer [main-view right-navbar]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -22,7 +22,6 @@
 (def uri (goog.Uri. js/location.href))
 
 (def ssl? (= (.getScheme uri) "https"))
-
 
 ;; fire up repl
 #_(do
@@ -68,15 +67,14 @@
 (def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-?#]+)*(/[\w-\.]+)*")
 
 
-(defn add-post [stage e]
+(defn add-post [stage author]
   (let [post-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
         hash-tags (re-seq #"#[\w\d-_]+" text)
         urls (->> text
                   (re-seq url-regexp)
-                  (map first))
-        user (get-in @stage [:config :user])]
+                  (map first))]
     (dom/set-value! (dom/by-id "general-input-form") "")
     (go (<! (s/transact stage
                         ["eve@polyc0l0r.net"
@@ -86,7 +84,7 @@
                                   :title (str (apply str (take 40 text)) "...")
                                   :detail-url (first urls)
                                   :detail-text  text
-                                  :user user
+                                  :author author
                                   :ts ts}]
                                 (map (fn [t] {:db/id (uuid)
                                              :post post-id
@@ -99,15 +97,14 @@
                         {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
 
 
-(defn add-comment [stage post-id]
+(defn add-comment [stage author post-id]
   (let [comment-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
         hash-tags (re-seq #"#[\w\d-_]+" text)
         urls (->> text
                   (re-seq url-regexp)
-                  (map first))
-        user (get-in @stage [:config :user])]
+                  (map first))]
     (dom/set-value! (dom/by-id "general-input-form") "")
     (go (<! (s/transact stage
                         ["eve@polyc0l0r.net"
@@ -117,7 +114,7 @@
                          [{:db/id comment-id
                            :post post-id
                            :content text
-                           :user user
+                           :author author
                            :ts ts}])
                         '(fn [old params]
                            (:db-after (d/transact old params)))))
@@ -179,14 +176,37 @@
          {:init-state state}))))
 
 
+
+  (defn nav-view [app owner]
+    (reify
+      om/IInitState
+      (init-state [_]
+        {:set-user? true
+         :current-user ""
+         :input-placeholder "Search ..."
+         :input-text ""})
+      om/IRenderState
+      (render-state [this {:keys [set-user? current-user input-text input-placeholder] :as state}]
+        (right-navbar
+         owner
+         (if set-user?
+           (assoc state :input-placeholder "Punch in email address ...")
+           state)))))
+
   (om/root
    collection-view
-   (get-in @stage [:volatile :val-atom])
-   {:target (. js/document (getElementById "main-container"))}))
+    (get-in @stage [:volatile :val-atom])
+    {:target (. js/document (getElementById "main-container"))})
 
+  (om/root
+   nav-view
+   (get-in @stage [:volatile :val-atom])
+   {:target (. js/document (getElementById "lc-nav-container"))}))
 
 
 (comment
+
+  (def eve-data (get-in @stage [:volatile :val-atom]))
 
   (let [db (get-in @eve-data ["eve@polyc0l0r.net"
                                      #uuid "b09d8708-352b-4a71-a845-5f838af04116"
@@ -236,6 +256,8 @@
     :hashtags #{"#greenwald" "#snowden" "#nsa"}}]
 
 
+
+
   (let [post-id (uuid)
         comment-id1 (uuid)
         ts (js/Date.)]
@@ -256,18 +278,5 @@
                           :date "today"}]
                         '(fn [old params]
                            (:db-after (d/transact old params)))))))
-
-  (map (partial zipmap [:id :title :detail-url :detail-text :user :ts])
-       (d/q '[:find ?p ?title ?dtext ?durl ?user ?ts
-              :in $
-              :where
-              [?p :user ?user]
-              [?p :detail-url ?durl]
-              [?p :detail-text ?dtext]
-              [?p :ts ?ts]
-              [?p :title ?title]]
-            (get-in @eve-data ["eve@polyc0l0r.net"
-                               #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                               "master"])))
 
 )
