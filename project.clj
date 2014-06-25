@@ -52,9 +52,15 @@
              :css-dirs ["resources/public/css"]}
 
 
-  :cljsbuild {:builds [{:source-paths ["src/cljs"]
-                :compiler
-                {:output-to "resources/public/js/compiled/main.js"
-                 :output-dir "resources/public/js/compiled/out"
-                 :optimizations :none
-                 :source-map true}}]})
+  :cljsbuild
+  {:builds
+   [{:id "dev"
+     :source-paths ["src/cljs"]
+     :compiler {:output-to "resources/public/js/compiled/main.js"
+                :output-dir "resources/public/js/compiled/out"
+                :optimizations :none
+                :source-map true}}
+    {:id "prod"
+     :source-paths ["src/cljs"]
+     :compiler {:output-to "resources/public/js/main.js"
+                :optimizations :simple}}]})
