@@ -155,10 +155,8 @@
        (str
         (if ssl?  "wss://" "ws://")
         (.getDomain uri)
-        ":"
-        (if (= (.getDomain uri) "localhost")
-          8084
-          (.getPort uri))
+        (when (= (.getDomain uri) "localhost")
+          (str ":" 8084 #_(.getPort uri)))
         "/geschichte/ws")))
 
 
