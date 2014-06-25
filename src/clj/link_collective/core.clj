@@ -1,7 +1,7 @@
 (ns link-collective.core
   (:gen-class :main true)
   (:require [clojure.edn :as edn]
-            [net.cgrand.enlive-html :refer [deftemplate set-attr] :as enlive]
+            [net.cgrand.enlive-html :refer [deftemplate set-attr substitute html] :as enlive]
             [clojure.java.io :as io]
             [compojure.route :refer [resources]]
             [compojure.core :refer [GET POST defroutes]]
@@ -34,7 +34,8 @@
   [:#bootstrap-theme-css] (set-attr "href" "static/bootstrap/bootstrap-3.1.1-dist/css/bootstrap-theme.min.css")
   [:#react-js] (set-attr "src" "static/react/react-0.9.0.min.js")
   [:#jquery-js] (set-attr "src" "static/jquery/jquery-1.11.0.min.js")
-  [:#bootstrap-js] (set-attr "src" "static/bootstrap/bootstrap-3.1.1-dist/js/bootstrap.min.js"))
+  [:#bootstrap-js] (set-attr "src" "static/bootstrap/bootstrap-3.1.1-dist/js/bootstrap.min.js")
+  [:#js-files] (substitute (html [:script {:src "js/main.js" :type "text/javascript"}])))
 
 
 (defn create-store
