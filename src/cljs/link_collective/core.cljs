@@ -156,7 +156,7 @@
         (.getDomain uri)
         ":"
         (if (= (.getDomain uri) "localhost")
-          8080
+          8084
           (.getPort uri))
         "/geschichte/ws")))
 
@@ -189,6 +189,10 @@
            (assoc state :input-placeholder "Punch in email address ...")
            state)))))
 
+  (om/root
+   nav-view
+   (get-in @stage [:volatile :val-atom])
+   {:target (. js/document (getElementById "lc-nav-container"))})
 
   (om/root
    posts-view
@@ -196,10 +200,7 @@
     {:target (. js/document (getElementById "main-container"))})
 
 
-  (om/root
-   nav-view
-   (get-in @stage [:volatile :val-atom])
-   {:target (. js/document (getElementById "lc-nav-container"))}))
+  )
 
 
 (comment

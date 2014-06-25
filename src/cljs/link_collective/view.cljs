@@ -70,21 +70,26 @@
   (om/set-state! owner :input-text (.. e -target -value)))
 
 
+
 (deftemplate right-navbar "templates/nav.html"
   [owner {:keys [set-user? current-user input-placeholder input-text]}]
-  {[:#nav-current-user]
-   (content
-    (html
-     [:a {:href "#"
-          :class (if set-user? "" "navbar-link")
-          :on-click #(do
-                       (om/set-state! owner :set-user? (not set-user?))
-                       (if (not set-user?)
-                         (om/set-state! owner :input-text current-user)))}
-      [:span.glyphicon.glyphicon-user]])
-    " "
-    current-user)
-
+  {[:#nav-user-btn]
+   (do->
+    (if set-user?
+      (do->
+       (add-class "text-danger")
+       (remove-class "navbar-link"))
+      (do->
+       (remove-class "text-danger")
+       (add-class "navbar-link")))
+    (listen
+     :on-click
+     #(do
+        (om/set-state! owner :set-user? (not set-user?))
+        (if (not set-user?)
+          (om/set-state! owner :input-text current-user)
+          (om/set-state! owner :input-text "")))))
+   [:#nav-current-user] (content current-user)
    [:#nav-input-field]
    (do->
     (set-attr :value input-text)
@@ -102,19 +107,19 @@
 
 ;; --- user post templates ---
 
-(defsnippet post-comment "main.html" [:.comment]
+(defsnippet post-comment "templates/posts.html" [:.comment]
   [comment]
   {[:.comment-text] (content (:content comment))
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content (str (:ts comment)))})
 
 
-(defsnippet post-header-hashtag "main.html" [:.post-header-hashtag]
+(defsnippet post-header-hashtag "templates/posts.html" [:.post-header-hashtag]
   [hashtag]
   {[:.post-header-hashtag-text] (content (name hashtag))})
 
 
-(defsnippet post-detail "main.html" [:.post-detail]
+(defsnippet post-detail "templates/posts.html" [:.post-detail]
   [post app]
   {[:.post-detail] (set-attr "id" (str "post-detail-" (:id post)))
    [:.post-detail-url] (do-> (set-attr "href" (:detail-url post))
@@ -123,7 +128,7 @@
    [:.comments] (content (map post-comment (get-comments (:id post) app)))})
 
 
-(defsnippet post-header "main.html" [:.post-header]
+(defsnippet post-header "templates/posts.html" [:.post-header]
   [post owner]
   {[:.post-header]
    (do->
@@ -162,7 +167,7 @@
    [:.post-header-hashtags] (content (map post-header-hashtag (:hashtags post)))})
 
 
-(defsnippet post "main.html" [:.post]
+(defsnippet post "templates/posts.html" [:.post]
   [post app owner]
   {[:.post] (set-attr "id" (str "post-" (:id post)))
    [:.comment-counter] (content (-> (get-comments (:id post) app) count))
@@ -171,19 +176,23 @@
 
 
 (defn commit [owner]
-  (let [username (.-innerText (sel1 :#nav-current-user))
+  (let [username (.-innerHTML (sel1 :#nav-current-user))
         add-post (om/get-state owner :add-post)
         add-comment (om/get-state owner :add-comment)
         selected-entries (om/get-state owner :selected-entries)]
-    (if (= "" username)
-      (.log js/console (str selected-entries))
+    (if (= username "")
+      (js/alert "Please type in username")
       (if (empty? selected-entries)
         (add-post username)
         (add-comment username (last selected-entries))))))
 
 
-(deftemplate posts "main.html"
+(deftemplate posts "templates/posts.html"
   [app owner]
   {[:.list-group] (content (map #(post % app owner) (get-posts app)))
-   [:#general-input-form] (listen :on-key-press #(when (= (.-keyCode %) 10) (commit owner)))
+   [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
+                                                  (commit owner)
+                                                  (when (= (.-which %) 13)
+                                                    (when (.-ctrlKey %)
+                                                      (commit owner)))))
    [:#send-button] (listen :on-click (fn [e] (commit owner)))})
