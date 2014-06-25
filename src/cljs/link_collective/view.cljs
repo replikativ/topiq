@@ -180,11 +180,14 @@
         add-post (om/get-state owner :add-post)
         add-comment (om/get-state owner :add-comment)
         selected-entries (om/get-state owner :selected-entries)]
-    (if (= username "")
-      (js/alert "Please type in username")
-      (if (empty? selected-entries)
-        (add-post username)
-        (add-comment username (last selected-entries))))))
+    (if (= "" username)
+      (js/alert "Please type in username in the nav box")
+      (try
+        (if (empty? selected-entries)
+          (add-post username)
+          (add-comment username (last selected-entries)))
+        (catch js/Object e
+            (js/alert e))))))
 
 
 (deftemplate posts "templates/posts.html"
