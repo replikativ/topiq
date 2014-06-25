@@ -61,7 +61,8 @@
     (create-http-kit-handler!
      (str (if (= (:proto @state) "https") "wss" "ws")
           "://" (:host @state)
-          ":" (:port @state)
+          (when (= :dev (:build @state))
+            ":" (:port @state))
           "/geschichte/ws")
      (:tag-table @state))
     (:store @state)))
