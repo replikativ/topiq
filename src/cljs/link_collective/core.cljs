@@ -128,13 +128,11 @@
 (read/register-tag-parser! 'datascript.DB datascript/map->DB)
 (read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
 
-
 (go
   (def store
     (<! (new-mem-store
          ;; empty db
-         (atom (read-string
-                "{#uuid \"11a1c86b-935c-5a80-9c48-e0095321f738\" #datascript.DB{:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :ea {}, :av {}, :max-eid 0, :max-tx 536870912}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), #uuid \"2425a9dc-7ce8-56a6-9f52-f7c431afcd91\" {:transactions [[#uuid \"11a1c86b-935c-5a80-9c48-e0095321f738\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-05-30T21:20:05.808-00:00\", :author \"eve@polyc0l0r.net\"}, \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"2425a9dc-7ce8-56a6-9f52-f7c431afcd91\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-05-30T21:20:05.808-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"2425a9dc-7ce8-56a6-9f52-f7c431afcd91\" []}, :public false, :pull-requests {}}}}"))
+         (atom (read-string "{#uuid \"2abe63d8-2629-5b05-ba42-65d5a33dc77d\" {:transactions [[#uuid \"11a1c86b-935c-5a80-9c48-e0095321f738\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T17:28:39.766-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"2abe63d8-2629-5b05-ba42-65d5a33dc77d\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T17:28:39.766-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"2abe63d8-2629-5b05-ba42-65d5a33dc77d\" []}, :public false, :pull-requests {}}}, #uuid \"11a1c86b-935c-5a80-9c48-e0095321f738\" #datascript.DB{:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :ea {}, :av {}, :max-eid 0, :max-tx 536870912}}"))
          (atom  {'datascript.DB datascript/map->DB
                  'datascript.Datom datascript/map->Datom}))))
 
@@ -169,11 +167,18 @@
          :add-comment (partial add-comment stage)})
       om/IRenderState
       (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
-        (if (= (type (om/value (get-in app ["eve@polyc0l0r.net"
-                                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                            "master"])))
-               geschichte.stage/Conflict)
-          (omdom/div nil (str "Conflict: " (om/value app)))
+        (let [val (om/value (get-in app ["eve@polyc0l0r.net"
+                                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                         "master"]))])
+        (if (= (type val) geschichte.stage/Conflict)
+          (do
+            (s/merge! (om/value app)
+                      ["eve@polyc0l0r.net"
+                       #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                       "master"]
+                      (concat (map :id (:commits-a val))
+                              (map :id (:commits-b val))))
+            (omdom/div nil (str "Resolving conflicts... please wait. " val)))
           (om/build posts app {:init-state state})))))
 
 
@@ -201,11 +206,18 @@
   (om/root
    posts-view
    (get-in @stage [:volatile :val-atom])
-   {:target (. js/document (getElementById "main-container"))})
+   {:target (. js/document (getElementById "main-container"))}))
 
+;; top.iq
+;; 160 chars, links, hashtags
+;; free form comments (markdown), flat thread
+;; plugins to add data and structure to comments / social apps
+;; individual up to collective help to summarize for new topic
+;; organized in a discourse/conversation (branch?)
+;; e.g. private conversation "discourse" for each friend as "messaging"
 
-  )
-
+;; no ts in commits
+;; eventual consistent partial updates
 
 (comment
   (def eve-data (get-in @stage [:volatile :val-atom]))
