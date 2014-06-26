@@ -17,7 +17,7 @@
 
 ;; --- datascript queries ---
 
-(defn get-posts [stage]
+(defn get-topiqs [stage]
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
@@ -107,30 +107,18 @@
 
 ;; --- user post templates ---
 
-(defsnippet post-comment "templates/posts.html" [:.comment]
+(defsnippet topiq-comment "templates/topiqs.html" [:.comment]
   [comment]
   {[:.comment-text] (content (:content comment))
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content (str (:ts comment)))})
 
 
-(defsnippet post-header-hashtag "templates/posts.html" [:.post-header-hashtag]
-  [hashtag]
-  {[:.post-header-hashtag-text] (content (name hashtag))})
-
-
-(defsnippet post-detail "templates/posts.html" [:.post-detail]
-  [post app]
-  {[:.post-detail] (set-attr "id" (str "post-detail-" (:id post)))
-   [:.post-detail-url] (do-> (set-attr "href" (:detail-url post))
-                             (content (:detail-url post)))
-   [:.post-detail-text] (content (:detail-text post))
-   [:.comments] (content (map post-comment (get-comments (:id post) app)))})
-
-
-(defsnippet post-header "templates/posts.html" [:.post-header]
-  [post owner]
-  {[:.post-header]
+(defsnippet topiq "templates/topiqs.html" [:.topiq]
+  [topiq app owner]
+  {[:.topiq] (set-attr "id" (str "topiq-" (:id topiq)))
+   [:.comment-counter] (content (-> (get-comments (:id topiq) app) count))
+   [:.topiq-header]
    (do->
     (listen
      :on-click
@@ -138,41 +126,35 @@
        ;; will cleanup this mess and migrate some of it into view state
        (let [selected-entries (om/get-state owner :selected-entries)]
          (.log js/console (str selected-entries))
-         (if (some #{(:id post)} selected-entries)
+         (if (some #{(:id topiq)} selected-entries)
            (do
-             (dommy/remove-class! (sel1 (str "#post-" (:id post))) :selected-entry)
+             (dommy/remove-class! (sel1 (str "#topiq-" (:id topiq))) :selected-entry)
              (if (> (count selected-entries) 1)
-               (dommy/add-class! (sel1 (str "#post-" (-> (remove #(= % (:id post)) selected-entries) last))) :selected-entry)
+               (dommy/add-class! (sel1 (str "#topiq-" (-> (remove #(= % (:id topiq)) selected-entries) last))) :selected-entry)
                (do
-                 (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a new post ...")
+                 (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a new topiq ...")
                  (dommy/remove-class! (sel1 :#send-button-icon) :glyphicon-comment)
                  (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-send)))
              (om/set-state!
               owner
               :selected-entries
-              (vec (remove #(= % (:id post)) selected-entries))))
+              (vec (remove #(= % (:id topiq)) selected-entries))))
            (do
-             (doseq [post-header (sel :.post)]
-               (dommy/remove-class! post-header :selected-entry))
-             (dommy/add-class! (sel1 (str "#post-" (:id post))) :selected-entry)
+             (doseq [topiq-header (sel :.topiq)]
+               (dommy/remove-class! topiq-header :selected-entry))
+             (dommy/add-class! (sel1 (str "#topiq-" (:id topiq))) :selected-entry)
              (if (empty? selected-entries)
                (do
                  (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a comment...")
                  (dommy/remove-class! (sel1 :#send-button-icon) :glyphicon-send)
                  (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-comment)))
-             (om/set-state! owner :selected-entries (conj selected-entries (:id post))))))))
-    (set-attr "href" (str "#post-detail-" (:id post))))
-   [:.post-header-text] (content (:title post))
-   [:.post-header-author] (content (:author post))
-   [:.post-header-hashtags] (content (map post-header-hashtag (:hashtags post)))})
-
-
-(defsnippet post "templates/posts.html" [:.post]
-  [post app owner]
-  {[:.post] (set-attr "id" (str "post-" (:id post)))
-   [:.comment-counter] (content (-> (get-comments (:id post) app) count))
-   [:.post-header] (substitute (post-header post owner))
-   [:.post-detail] (substitute (post-detail post app))})
+             (om/set-state! owner :selected-entries (conj selected-entries (:id topiq))))))))
+    (set-attr "href" (str "#comments-" (:id topiq))))
+   [:.topiq-text] (content (:title topiq))
+   [:.topiq-author] (content (:author topiq))
+   [:.topiq-ts] (content (str (:ts topiq)))
+   [:.topiq-comments] (set-attr :id (str "comments-" (:id topiq)))
+   [:.comments] (content (map topiq-comment (get-comments (:id topiq) app)))})
 
 
 (defn commit [owner]
@@ -190,9 +172,9 @@
             (js/alert e))))))
 
 
-(deftemplate posts "templates/posts.html"
+(deftemplate topiqs "templates/topiqs.html"
   [app owner]
-  {[:.list-group] (content (map #(post % app owner) (get-posts app)))
+  {[:.list-group] (content (map #(topiq % app owner) (get-topiqs app)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)
                                                   (when (= (.-which %) 13)

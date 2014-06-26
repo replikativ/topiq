@@ -1,5 +1,5 @@
 (ns link-collective.core
-  (:require [link-collective.view :refer [posts right-navbar]]
+  (:require [link-collective.view :refer [topiqs right-navbar]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -128,6 +128,23 @@
 (read/register-tag-parser! 'datascript.DB datascript/map->DB)
 (read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
 
+(defn nav-view [app owner]
+  (reify
+    om/IInitState
+    (init-state [_]
+      {:set-user? true
+       :current-user ""
+       :input-placeholder "Search ..."
+       :input-text ""})
+    om/IRenderState
+    (render-state [this {:keys [set-user? current-user input-text input-placeholder] :as state}]
+      (right-navbar
+       owner
+       (if set-user?
+         (assoc state :input-placeholder "Punch in email address ...")
+         state)))))
+
+
 (go
   (def store
     (<! (new-mem-store
@@ -158,7 +175,7 @@
         "/geschichte/ws")))
 
 
-  (defn posts-view [app owner]
+  (defn topiqs-view [app owner]
     (reify
       om/IInitState
       (init-state [_]
@@ -179,24 +196,7 @@
                       (concat (map :id (:commits-a val))
                               (map :id (:commits-b val))))
             (omdom/div nil (str "Resolving conflicts... please wait. " val)))
-          (om/build posts app {:init-state state})))))
-
-
-  (defn nav-view [app owner]
-    (reify
-      om/IInitState
-      (init-state [_]
-        {:set-user? true
-         :current-user ""
-         :input-placeholder "Search ..."
-         :input-text ""})
-      om/IRenderState
-      (render-state [this {:keys [set-user? current-user input-text input-placeholder] :as state}]
-        (right-navbar
-         owner
-         (if set-user?
-           (assoc state :input-placeholder "Punch in email address ...")
-           state)))))
+          (om/build topiqs app {:init-state state})))))
 
   (om/root
    nav-view
@@ -204,9 +204,9 @@
    {:target (. js/document (getElementById "lc-nav-container"))})
 
   (om/root
-   posts-view
+   topiqs-view
    (get-in @stage [:volatile :val-atom])
-   {:target (. js/document (getElementById "main-container"))}))
+   {:target (. js/document (getElementById "topiq-container"))}))
 
 ;; top.iq
 ;; 160 chars, links, hashtags
