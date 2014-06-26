@@ -65,7 +65,7 @@
                             "master"))))
 
 
-(def url-regexp #"(https?|ftp)://[a-z0-9-]+(\.[a-z0-9-]+)+(/[\w-?#\.,]+)*(/[\w-\.,]+)*")
+(def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?")
 
 
 (defn add-post [stage author]
@@ -156,7 +156,7 @@
         (if ssl?  "wss://" "ws://")
         (.getDomain uri)
         (when (= (.getDomain uri) "localhost")
-          (str ":" 8084 #_(.getPort uri)))
+          (str ":" 8080 #_(.getPort uri)))
         "/geschichte/ws")))
 
 

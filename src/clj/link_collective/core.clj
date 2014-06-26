@@ -62,7 +62,7 @@
      (str (if (= (:proto @state) "https") "wss" "ws")
           "://" (:host @state)
           (when (= :dev (:build @state))
-            ":" (:port @state))
+            (str ":" (:port @state)))
           "/geschichte/ws")
      (:tag-table @state))
     (:store @state)))
