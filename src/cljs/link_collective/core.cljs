@@ -116,7 +116,14 @@
                            :post post-id
                            :content text
                            :author author
-                           :ts ts}])
+                           :ts ts}]
+                         (map (fn [t]
+                                {:db/id (uuid)
+                                 :comment comment-id
+                                 :tag (keyword t)
+                                 :ts ts})
+                              hash-tags)
+                         )
                         '(fn [old params]
                            (:db-after (d/transact old params)))))
         (<! (s/commit! stage
