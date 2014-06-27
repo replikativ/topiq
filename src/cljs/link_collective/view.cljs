@@ -111,7 +111,11 @@
   [comment]
   {[:.comment-text] (content (:content comment))
    [:.comment-author] (content (:author comment))
-   [:.comment-ts] (content (str (:ts comment)))})
+   [:.comment-ts] (content
+                 (let [time-diff (- (js/Date.) (:ts comment))]
+                   (if (> time-diff 3600000)
+                     (str (Math/round (/ time-diff 3600000)) " hours ago")
+                     (str (Math/round (/ time-diff 60000)) " minutes ago"))))})
 
 
 (defsnippet topiq "templates/topiqs.html" [:.topiq]
@@ -125,7 +129,6 @@
      (fn [e]
        ;; will cleanup this mess and migrate some of it into view state
        (let [selected-entries (om/get-state owner :selected-entries)]
-         (.log js/console (str selected-entries))
          (if (some #{(:id topiq)} selected-entries)
            (do
              (dommy/remove-class! (sel1 (str "#topiq-" (:id topiq))) :selected-entry)
@@ -152,7 +155,11 @@
     (set-attr "href" (str "#comments-" (:id topiq))))
    [:.topiq-text] (content (:title topiq))
    [:.topiq-author] (content (:author topiq))
-   [:.topiq-ts] (content (str (:ts topiq)))
+   [:.topiq-ts] (content
+                 (let [time-diff (- (js/Date.) (:ts topiq))]
+                   (if (> time-diff 3600000)
+                     (str (Math/round (/ time-diff 3600000)) " hours ago")
+                     (str (Math/round (/ time-diff 60000)) " minutes ago"))))
    [:.topiq-comments] (set-attr :id (str "comments-" (:id topiq)))
    [:.comments] (content (map topiq-comment (get-comments (:id topiq) app)))})
 
@@ -170,6 +177,7 @@
           (add-comment username (last selected-entries)))
         (catch js/Object e
             (js/alert e))))))
+
 
 
 (deftemplate topiqs "templates/topiqs.html"
