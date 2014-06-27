@@ -112,10 +112,12 @@
   {[:.comment-text] (content (:content comment))
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content
-                 (let [time-diff (- (js/Date.) (:ts comment))]
-                   (if (> time-diff 3600000)
-                     (str (Math/round (/ time-diff 3600000)) " hours ago")
-                     (str (Math/round (/ time-diff 60000)) " minutes ago"))))})
+                   (let [time-diff (- (js/Date.) (:ts comment))]
+                     (if (> time-diff 3600000)
+                       (str (Math/round (/ time-diff 3600000)) " hours ago")
+                       (if (< (Math/round (/ time-diff 60000)) 2)
+                         "now"
+                         (str (Math/round (/ time-diff 60000)) " minutes ago")))))})
 
 
 (defsnippet topiq "templates/topiqs.html" [:.topiq]
@@ -159,7 +161,9 @@
                  (let [time-diff (- (js/Date.) (:ts topiq))]
                    (if (> time-diff 3600000)
                      (str (Math/round (/ time-diff 3600000)) " hours ago")
-                     (str (Math/round (/ time-diff 60000)) " minutes ago"))))
+                     (if (< (Math/round (/ time-diff 60000)) 2)
+                       "now"
+                       (str (Math/round (/ time-diff 60000)) " minutes ago")))))
    [:.topiq-comments] (set-attr :id (str "comments-" (:id topiq)))
    [:.comments] (content (map topiq-comment (get-comments (:id topiq) app)))})
 
