@@ -31,6 +31,7 @@
                  [figwheel "0.1.3-SNAPSHOT"]
                  [com.facebook/react "0.9.0.1"]
                  [net.polyc0l0r/geschichte "0.1.0-SNAPSHOT"]
+                 [markdown-clj "0.9.44"]
 
                  [weasel "0.2.1"]]
 

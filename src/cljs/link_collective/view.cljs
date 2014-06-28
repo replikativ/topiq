@@ -1,12 +1,13 @@
 (ns link-collective.view
   (:require [figwheel.client :as fw :include-macros true]
-            [kioo.om :refer [content after set-attr do-> substitute listen prepend append html remove-class add-class]]
+            [kioo.om :refer [html-content content after set-attr do-> substitute listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
             [datascript :as d]
             [dommy.utils :as utils]
             [dommy.core :as dommy]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true])
+            [om.dom :as dom :include-macros true]
+            [markdown.core :as md])
   (:require-macros [kioo.om :refer [defsnippet deftemplate]]
                    [dommy.macros :refer [node sel sel1]]))
 
@@ -49,18 +50,27 @@
             (get-in stage ["eve@polyc0l0r.net"
                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                            "master"]))
-        result (sort-by
-                :ts
-                (map (partial zipmap [:id :post :content :author :ts])
-                     (d/q '[:find ?p ?pid ?content ?author ?ts
-                            :in $
-                            :where
-                            [?p :post ?pid]
-                            [?p :content ?content]
-                            [?p :author ?author]
-                            [?p :ts ?ts]]
-                          db)))]
-    (filter #(= (:post %) post-id) result)))
+        result (map (partial zipmap [:id :post :content :author :ts])
+                    (d/q '[:find ?p ?pid ?content ?author ?ts
+                           :in $
+                           :where
+                           [?p :post ?pid]
+                           [?p :content ?content]
+                           [?p :author ?author]
+                           [?p :ts ?ts]]
+                         db))]
+    (filter
+     #(= (:post %) post-id)
+     (sort-by :ts
+              (map (fn [{:keys [id] :as p}]
+                     (assoc p :hashtags (first (first (d/q '[:find (distinct ?hashtag)
+                                                             :in $ ?pid
+                                                             :where
+                                                             [?h :comment ?pid]
+                                                             [?h :tag ?hashtag]]
+                                                           db
+                                                           id)))))
+                   result)))))
 
 
 
@@ -104,12 +114,22 @@
         (om/set-state! owner :input-text "")
         (om/set-state! owner :input-placeholder "Search ..."))))})
 
-
 ;; --- user post templates ---
 
 (defsnippet topiq-comment "templates/topiqs.html" [:.comment]
   [comment]
-  {[:.comment-text] (content (:content comment))
+  {[:.comment-text] (html-content
+                     (md/mdToHtml
+                      (loop [text (:content comment)
+                             hashtags (map name (:hashtags comment))]
+                        (if (empty? hashtags)
+                          text
+                          (recur
+                           (clojure.string/replace
+                            text
+                            (re-pattern (first hashtags))
+                            (str"<a href='#'>" (first hashtags) "</a>"))
+                           (rest hashtags))))))
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content
                    (let [time-diff (- (js/Date.) (:ts comment))]
@@ -155,7 +175,17 @@
                  (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-comment)))
              (om/set-state! owner :selected-entries (conj selected-entries (:id topiq))))))))
     (set-attr "href" (str "#comments-" (:id topiq))))
-   [:.topiq-text] (content (:title topiq))
+   [:.topiq-text] (html-content
+                   (loop [text (:title topiq)
+                          hashtags (map name (:hashtags topiq))]
+                        (if (empty? hashtags)
+                          text
+                          (recur
+                           (clojure.string/replace
+                            text
+                            (re-pattern (first hashtags))
+                            (str"<a href='#'>" (first hashtags) "</a>"))
+                           (rest hashtags))))(md/mdToHtml (:title topiq)))
    [:.topiq-author] (content (:author topiq))
    [:.topiq-ts] (content
                  (let [time-diff (- (js/Date.) (:ts topiq))]
