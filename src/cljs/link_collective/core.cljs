@@ -1,5 +1,5 @@
 (ns link-collective.core
-  (:require [link-collective.view :refer [topiqs right-navbar]]
+  (:require [link-collective.view :refer [topiqs navbar]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -42,7 +42,6 @@
      :jsload-callback (fn [] (print "reloaded")))
     (ws-repl/connect "ws://localhost:17782" :verbose true)))
 
-(println "ALLE MACHT DEM KOLLEKTIV!")
 
 (def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
               '(fn [old params]
@@ -53,7 +52,10 @@
 
 (def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?")
 
-(defn add-post [stage author]
+
+(defn add-post
+  "Transacts a new topiq to the stage"
+  [stage author]
   (let [post-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
@@ -120,58 +122,65 @@
 (read/register-tag-parser! 'datascript/DB datascript/read-db)
 (read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
 
-(defn nav-view [app owner]
+
+(defn navbar-view
+  "Builds navbar with search, user menu and user-related modals"
+  [app owner]
   (reify
     om/IInitState
     (init-state [_]
-      {:set-user? true
-       :current-user ""
-       :input-placeholder "Search ..."
-       :input-text ""})
+      {:current-user "Not logged in"
+       :search-placeholder "Search..."
+       :search-text ""
+       :login-user-text ""})
     om/IRenderState
-    (render-state [this {:keys [set-user? current-user input-text input-placeholder] :as state}]
-      (right-navbar
+    (render-state [this {:keys [current-user search-text login-user-text search-placeholder] :as state}]
+      (navbar
        owner
-       (if set-user?
-         (assoc state :input-placeholder "Punch in email address ...")
-         state)))))
+       state))))
 
-(defn topiqs-view [app owner]
-    (reify
-      om/IInitState
-      (init-state [_]
-        {:selected-entries []
-         :add-post (partial add-post stage)
-         :add-comment (partial add-comment stage)})
-      om/IRenderState
-      (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
-        (let [val (om/value (get-in app ["eve@polyc0l0r.net"
-                                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                         "master"]))]
-          (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
-                  (do
-                    (s/merge! stage ["eve@polyc0l0r.net"
-                                     #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                     "master"]
-                              (concat (map :id (:commits-a val))
-                                      (map :id (:commits-b val))))
-                    (omdom/div nil (str "Resolving conflicts... please wait. " (pr-str val))))
 
-                  (= (type val) geschichte.stage/Abort) ;; reapply
-                  (do
-                    (s/transact stage ["eve@polyc0l0r.net"
+(defn topiqs-view
+  "Builds topiqs list with topiq head and related comment list, resolves conflicts"
+  [app owner]
+  (reify
+    om/IInitState
+    (init-state [_]
+      {:selected-entries []
+       :add-post (partial add-post stage)
+       :add-comment (partial add-comment stage)})
+    om/IRenderState
+    (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
+      (let [val (om/value (get-in app ["eve@polyc0l0r.net"
                                        #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                       "master"] (:aborted val))
-                    (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
+                                       "master"]))]
+        (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
+              (do
+                (s/merge! stage ["eve@polyc0l0r.net"
+                                 #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                 "master"]
+                          (concat (map :id (:commits-a val))
+                                  (map :id (:commits-b val))))
+                (omdom/div nil (str "Resolving conflicts... please wait. " (pr-str val))))
 
-                  :else
-                  (om/build topiqs app {:init-state state}))))))
+              (= (type val) geschichte.stage/Abort) ;; reapply
+              (do
+                (s/transact stage ["eve@polyc0l0r.net"
+                                   #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                   "master"] (:aborted val))
+                (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
+
+              :else
+              (om/build topiqs app {:init-state state}))))))
+
 
 (def trusted-hosts (atom #{:geschichte.stage/stage (.getDomain uri)}))
 
+
 (defn- auth-fn [users]
   (go (js/alert (pr-str "AUTH-REQUIRED: " users))
-      {"eve@polyc0l0r.net" "lisp"}))
+    {"eve@polyc0l0r.net" "lisp"}))
+
 
 (go
   (def store
@@ -204,9 +213,9 @@
         "/geschichte/ws")))
 
   (om/root
-   nav-view
+   navbar-view
    (get-in @stage [:volatile :val-atom])
-   {:target (. js/document (getElementById "navbar"))})
+   {:target (. js/document (getElementById "collapsed-navbar-group"))})
 
   (om/root
    topiqs-view

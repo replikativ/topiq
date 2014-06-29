@@ -76,21 +76,33 @@
 
 ;; --- navbar templates and functions ---
 
-(defn handle-nav-text-change [e owner]
-  (om/set-state! owner :input-text (.. e -target -value)))
+(defn handle-text-change [e owner text]
+  (om/set-state! owner text (.. e -target -value)))
 
 
+(defn set-navbar-user
+  "Set user name in user nav field and reset login text"
+  [owner name]
+  (do
+    (om/set-state! owner :current-user name)
+    (om/set-state! owner :login-user-text "")))
 
-(deftemplate right-navbar "templates/tool.html"
-  [owner {:keys [current-user input-placeholder input-text]}]
-  {[:#nav-current-user] (content (or current-user "Not logged in."))
-   [:#nav-input-field]
-   (listen
-    :on-key-press
-    #(when (== (.-keyCode %) 13)
-       (js/alert "Search is not implemented yet...")
-       (om/set-state! owner :input-text "")
-       (om/set-state! owner :input-placeholder "Search ...")))})
+
+(deftemplate navbar "templates/tool.html"
+  [owner {:keys [current-user search-text login-user-text search-placeholder]}]
+  {[:#nav-input-field] (do-> (set-attr :placeholder search-placeholder)
+                             (content search-text)
+                             (listen :on-change #(handle-text-change % owner :search-text)))
+   [:#nav-current-user] (do-> (content current-user)
+                              (listen :on-change #(.log js/console (.. % -target -value))))
+   [:#login-user-input] (do-> (set-attr :value login-user-text)
+                              (listen :on-change #(handle-text-change % owner :login-user-text)))
+   [:#login-user-password] (set-attr :disabled true)
+   [:#modal-login-btn] (listen :on-click #(set-navbar-user owner login-user-text))
+   [:#register-user-input] (set-attr :disabled true)
+   [:#register-user-password] (set-attr :disabled true)
+   [:#forgot-user-input] (set-attr :disabled true)})
+
 
 ;; --- user post templates ---
 
@@ -111,7 +123,7 @@
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content
                    (let [time-diff (- (js/Date.) (:ts comment))]
-                     (if (> time-diff 3600000)
+                     (if (> time-diff 7200000)
                        (str (Math/round (/ time-diff 3600000)) " hours ago")
                        (if (< (Math/round (/ time-diff 60000)) 2)
                          "now"
@@ -181,8 +193,8 @@
         add-post (om/get-state owner :add-post)
         add-comment (om/get-state owner :add-comment)
         selected-entries (om/get-state owner :selected-entries)]
-    (if (= "" username)
-      (js/alert "Please type in username in the nav box")
+    (if (= "Not logged in." username)
+      (js/alert "Please login or register.")
       (try
         (if (empty? selected-entries)
           (add-post username)
