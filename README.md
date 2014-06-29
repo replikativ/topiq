@@ -1,10 +1,18 @@
 # link-collective
 
-A Clojure library designed to ... well, that part is up to you.
+A social networking/messaging web-application based on P2P synching.
 
 ## Usage
 
-FIXME
+Test instance at <http://lc.polyc0l0r.net>.
+
+## TODO
+
+- organized in a discourse/conversation (branch?), e.g. private
+  conversation "discourse" for each friend as "messaging"
+- support search by hash-tag, user
+- plugins to add data and structure to comments / social apps
+- individual up to collective help to summarize for new topic
 
 ## License
 

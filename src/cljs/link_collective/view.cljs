@@ -81,38 +81,16 @@
 
 
 
-(deftemplate right-navbar "templates/nav.html"
-  [owner {:keys [set-user? current-user input-placeholder input-text]}]
-  {[:#nav-user-btn]
-   (do->
-    (if set-user?
-      (do->
-       (add-class "text-danger")
-       (remove-class "navbar-link"))
-      (do->
-       (remove-class "text-danger")
-       (add-class "navbar-link")))
-    (listen
-     :on-click
-     #(do
-        (om/set-state! owner :set-user? (not set-user?))
-        (if (not set-user?)
-          (om/set-state! owner :input-text current-user)
-          (om/set-state! owner :input-text "")))))
-   [:#nav-current-user] (content current-user)
+(deftemplate right-navbar "templates/tool.html"
+  [owner {:keys [current-user input-placeholder input-text]}]
+  {[:#nav-current-user] (content (or current-user "Not logged in."))
    [:#nav-input-field]
-   (do->
-    (set-attr :value input-text)
-    (set-attr :placeholder input-placeholder)
-    (listen
-     :on-change #(handle-nav-text-change % owner)
-     :on-key-press
-     #(when (== (.-keyCode %) 13)
-        (when set-user?
-          (om/set-state! owner :set-user? false)
-          (om/set-state! owner :current-user input-text))
-        (om/set-state! owner :input-text "")
-        (om/set-state! owner :input-placeholder "Search ..."))))})
+   (listen
+    :on-key-press
+    #(when (== (.-keyCode %) 13)
+       (js/alert "Search is not implemented yet...")
+       (om/set-state! owner :input-text "")
+       (om/set-state! owner :input-placeholder "Search ...")))})
 
 ;; --- user post templates ---
 

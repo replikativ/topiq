@@ -34,9 +34,6 @@
                    :ip "0.0.0.0" :port 17782)))
 
 
-;; todo
-;; - load in templates
-
 ;; weasel websocket
 (if (= "localhost" (.getDomain uri))
   (do
@@ -53,21 +50,8 @@
               (fn [old params]
                 (:db-after (d/transact old params)))})
 
-#_(let [schema {:up-votes {:db/cardinality :db.cardinality/many}
-                :down-votes {:db/cardinality :db.cardinality/many}
-                :posts {:db/cardinality :db.cardinality/many}
-                :comments {:db/cardinality :db.cardinality/many}
-                :hashtags {:db/cardinality :db.cardinality/many}}
-        conn   (d/create-conn schema)]
-    (go (<! (s/create-repo! stage
-                            "eve@polyc0l0r.net"
-                            "link-collective discourse."
-                            @conn
-                            "master"))))
-
 
 (def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?")
-
 
 (defn add-post [stage author]
   (let [post-id (uuid)
@@ -152,49 +136,7 @@
          (assoc state :input-placeholder "Punch in email address ...")
          state)))))
 
-
-
-(def trusted-hosts (atom #{:geschichte.stage/stage (.getDomain uri)}))
-
-(defn- auth-fn [users]
-  (go (js/alert (pr-str "AUTH-REQUIRED: " users))
-      {"eve@polyc0l0r.net" "lisp"}))
-
-(go
-  (def store
-    (<! (new-mem-store
-         ;; empty db
-         (atom (read-string
-                "{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" {:transactions [[#uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T19:58:55.573-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T19:58:55.573-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" []}, :public false, :pull-requests {}}}}"))
-         (atom  {'datascript/DB datascript/read-db
-                 'datascript.Datom datascript/map->Datom}))))
-
-  (def peer (client-peer "CLIENT-PEER"
-                         store
-                         (partial auth store auth-fn (fn [creds] nil) trusted-hosts)))
-
-  (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
-
-  (<! (s/subscribe-repos! stage
-                          {"eve@polyc0l0r.net"
-                           {#uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                            #{"master"}}}))
-
-  (<! (timeout 500))
-
-  ;; fix back to functions in production
-  (<! (s/connect!
-       stage
-       (str
-        (if ssl?  "wss://" "ws://")
-        (.getDomain uri)
-        (when (= (.getDomain uri) "localhost")
-          (str ":" 8080 #_(.getPort uri)))
-        "/geschichte/ws")))
-
-  (println "test")
-
-  (defn topiqs-view [app owner]
+(defn topiqs-view [app owner]
     (reify
       om/IInitState
       (init-state [_]
@@ -225,47 +167,70 @@
                   :else
                   (om/build topiqs app {:init-state state}))))))
 
+(def trusted-hosts (atom #{:geschichte.stage/stage (.getDomain uri)}))
 
-  (defn nav-view [app owner]
-    (reify
-      om/IInitState
-      (init-state [_]
-        {:set-user? true
-         :current-user ""
-         :input-placeholder "Search ..."
-         :input-text ""})
-      om/IRenderState
-      (render-state [this {:keys [set-user? current-user input-text input-placeholder] :as state}]
-        (right-navbar
-         owner
-         (if set-user?
-           (assoc state :input-placeholder "Punch in email address ...")
-           state)))))
+(defn- auth-fn [users]
+  (go (js/alert (pr-str "AUTH-REQUIRED: " users))
+      {"eve@polyc0l0r.net" "lisp"}))
 
+(go
+  (def store
+    (<! (new-mem-store
+         ;; empty db
+         (atom (read-string
+                "{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" {:transactions [[#uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T19:58:55.573-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T19:58:55.573-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" []}, :public false, :pull-requests {}}}}"))
+         (atom  {'datascript/DB datascript/read-db
+                 'datascript.Datom datascript/map->Datom}))))
+
+  (def peer (client-peer "CLIENT-PEER"
+                         store
+                         (partial auth store auth-fn (fn [creds] nil) trusted-hosts)))
+
+  (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
+
+  (<! (s/subscribe-repos! stage
+                          {"eve@polyc0l0r.net"
+                           {#uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                            #{"master"}}}))
+
+  ;; fix back to functions in production
+  (<! (s/connect!
+       stage
+       (str
+        (if ssl?  "wss://" "ws://")
+        (.getDomain uri)
+        (when (= (.getDomain uri) "localhost")
+          (str ":" 8080 #_(.getPort uri)))
+        "/geschichte/ws")))
 
   (om/root
    nav-view
    (get-in @stage [:volatile :val-atom])
-   {:target (. js/document (getElementById "lc-nav-container"))})
+   {:target (. js/document (getElementById "navbar"))})
 
   (om/root
    topiqs-view
    (get-in @stage [:volatile :val-atom])
    {:target (. js/document (getElementById "topiq-container"))}))
 
-  (println "test-2")
-;; top.iq
-;; 160 chars, links, hashtags
-;; free form comments (markdown), flat thread
-;; plugins to add data and structure to comments / social apps
-;; individual up to collective help to summarize for new topic
-;; organized in a discourse/conversation (branch?)
-;; e.g. private conversation "discourse" for each friend as "messaging"
 
-;; no ts in commits
-;; eventual consistent partial updates
+
 
 (comment
+  ;; recreate database
+  (let [schema {:up-votes {:db/cardinality :db.cardinality/many}
+                :down-votes {:db/cardinality :db.cardinality/many}
+                :posts {:db/cardinality :db.cardinality/many}
+                :comments {:db/cardinality :db.cardinality/many}
+                :hashtags {:db/cardinality :db.cardinality/many}}
+        conn   (d/create-conn schema)]
+    (go (<! (s/create-repo! stage
+                            "eve@polyc0l0r.net"
+                            "link-collective discourse."
+                            @conn
+                            "master"))))
+
+
   (def eve-data (get-in @stage [:volatile :val-atom]))
 
   (let [db (get-in @eve-data ["eve@polyc0l0r.net"
