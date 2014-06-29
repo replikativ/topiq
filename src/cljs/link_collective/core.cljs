@@ -8,6 +8,7 @@
             [datascript :as d]
             [geschichte.stage :as s]
             [geschichte.sync :refer [client-peer]]
+            [geschichte.auth :refer [auth]]
             [konserve.store :refer [new-mem-store]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
@@ -132,7 +133,7 @@
 
 
 ;; we can do this runtime wide here, since we only use this datascript version
-(read/register-tag-parser! 'datascript.DB datascript/map->DB)
+(read/register-tag-parser! 'datascript/DB datascript/read-db)
 (read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
 
 (defn nav-view [app owner]
@@ -152,15 +153,25 @@
          state)))))
 
 
+
+(def trusted-hosts (atom #{:geschichte.stage/stage (.getDomain uri)}))
+
+(defn- auth-fn [users]
+  (go (js/alert (pr-str "AUTH-REQUIRED: " users))
+      {"eve@polyc0l0r.net" "lisp"}))
+
 (go
   (def store
     (<! (new-mem-store
          ;; empty db
-         (atom (read-string "{#uuid \"2abe63d8-2629-5b05-ba42-65d5a33dc77d\" {:transactions [[#uuid \"11a1c86b-935c-5a80-9c48-e0095321f738\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T17:28:39.766-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"2abe63d8-2629-5b05-ba42-65d5a33dc77d\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T17:28:39.766-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"2abe63d8-2629-5b05-ba42-65d5a33dc77d\" []}, :public false, :pull-requests {}}}, #uuid \"11a1c86b-935c-5a80-9c48-e0095321f738\" #datascript.DB{:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :ea {}, :av {}, :max-eid 0, :max-tx 536870912}}"))
-         (atom  {'datascript.DB datascript/map->DB
+         (atom (read-string
+                "{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" {:transactions [[#uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T19:58:55.573-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T19:58:55.573-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" []}, :public false, :pull-requests {}}}}"))
+         (atom  {'datascript/DB datascript/read-db
                  'datascript.Datom datascript/map->Datom}))))
 
-  (def peer (client-peer "CLIENT-PEER" store))
+  (def peer (client-peer "CLIENT-PEER"
+                         store
+                         (partial auth store auth-fn (fn [creds] nil) trusted-hosts)))
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
 
@@ -181,6 +192,7 @@
           (str ":" 8080 #_(.getPort uri)))
         "/geschichte/ws")))
 
+  (println "test")
 
   (defn topiqs-view [app owner]
     (reify
@@ -193,17 +205,43 @@
       (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
         (let [val (om/value (get-in app ["eve@polyc0l0r.net"
                                          #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                         "master"]))])
-        (if (= (type val) geschichte.stage/Conflict)
-          (do
-            (s/merge! (om/value app)
-                      ["eve@polyc0l0r.net"
-                       #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                       "master"]
-                      (concat (map :id (:commits-a val))
-                              (map :id (:commits-b val))))
-            (omdom/div nil (str "Resolving conflicts... please wait. " val)))
-          (om/build topiqs app {:init-state state})))))
+                                         "master"]))]
+          (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
+                  (do
+                    (s/merge! stage ["eve@polyc0l0r.net"
+                                     #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                     "master"]
+                              (concat (map :id (:commits-a val))
+                                      (map :id (:commits-b val))))
+                    (omdom/div nil (str "Resolving conflicts... please wait. " (pr-str val))))
+
+                  (= (type val) geschichte.stage/Abort) ;; reapply
+                  (do
+                    (s/transact stage ["eve@polyc0l0r.net"
+                                       #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                       "master"] (:aborted val))
+                    (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
+
+                  :else
+                  (om/build topiqs app {:init-state state}))))))
+
+
+  (defn nav-view [app owner]
+    (reify
+      om/IInitState
+      (init-state [_]
+        {:set-user? true
+         :current-user ""
+         :input-placeholder "Search ..."
+         :input-text ""})
+      om/IRenderState
+      (render-state [this {:keys [set-user? current-user input-text input-placeholder] :as state}]
+        (right-navbar
+         owner
+         (if set-user?
+           (assoc state :input-placeholder "Punch in email address ...")
+           state)))))
+
 
   (om/root
    nav-view
@@ -215,6 +253,7 @@
    (get-in @stage [:volatile :val-atom])
    {:target (. js/document (getElementById "topiq-container"))}))
 
+  (println "test-2")
 ;; top.iq
 ;; 160 chars, links, hashtags
 ;; free form comments (markdown), flat thread
