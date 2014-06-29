@@ -10,6 +10,7 @@
             [geschichte.meta :refer [update]]
             [geschichte.sync :refer [server-peer client-peer]]
             [geschichte.platform :refer [create-http-kit-handler!]]
+            [geschichte.auth :refer [auth]]
             [konserve.store :refer [new-mem-store]]
             [konserve.platform :refer [new-couch-store]]
             [compojure.handler :refer [site api]]
@@ -50,22 +51,32 @@
              (:tag-table @state))))
   state)
 
+(defn- cred-fn [creds]
+  (creds/bcrypt-credential-fn {"eve@polyc0l0r.net" {:username "eve@polyc0l0r.net"
+                                                    :password (creds/hash-bcrypt "lisp")
+                                                    :roles #{::user}}}
+                              creds))
+
+(defn- auth-fn [users]
+  (go (println "AUTH-REQUIRED: " users)
+      {}))
 
 (defn create-peer
   "Creates geschichte server peer"
   [state]
-  (swap!
-   state
-   (fn [old new] (assoc-in old [:peer] new))
-   (server-peer
-    (create-http-kit-handler!
-     (str (if (= (:proto @state) "https") "wss" "ws")
-          "://" (:host @state)
-          (when (= :dev (:build @state))
-            (str ":" (:port @state)))
-          "/geschichte/ws")
-     (:tag-table @state))
-    (:store @state)))
+  (let [{:keys [proto host port build tag-table store trusted-hosts]} @state]
+    (swap! state
+           (fn [old new] (assoc-in old [:peer] new))
+           (server-peer (create-http-kit-handler!
+                         (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
+                              "://" host
+                              (when (= :dev build)
+                                (str ":" port))
+                              "/geschichte/ws")
+                         tag-table)
+                        store
+                        (partial auth store auth-fn cred-fn (atom (or (:trusted-hosts @state)
+                                                                      #{}))))))
   state)
 
 

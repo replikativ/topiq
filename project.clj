@@ -19,13 +19,13 @@
 
                  [http-kit "2.1.18"]
                  [ring "1.2.2"]
-                 [com.cemerick/friend "0.2.0"]
+                 [com.cemerick/friend "0.2.1"]
                  [enlive "1.1.5"]
                  [compojure "1.1.6"]
 
                  [domina "1.0.2"]
                  [prismatic/dommy "0.1.2"]
-                 [datascript "0.1.4"]
+                 [datascript "0.1.6-SNAPSHOT"]
                  [om "0.6.3"]
                  [kioo "0.4.0"]
                  [figwheel "0.1.3-SNAPSHOT"]
