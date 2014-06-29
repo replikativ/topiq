@@ -163,7 +163,7 @@
 
   (init server-state "resources/server-config.edn")
 
-  (def server (start-server (:port @server-state)))
+  (def server (start-server (:port @server-state))
 
   (server)
 
