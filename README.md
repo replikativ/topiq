@@ -6,6 +6,8 @@ A social networking/messaging web-application based on P2P synching.
 
 Test instance at <http://lc.polyc0l0r.net>.
 
+**WARNING:** as of now, datascript has to be installed locally, get it [here](https://github.com/tonsky/datascript).
+
 ## TODO
 
 - organized in a discourse/conversation (branch?), e.g. private
@@ -16,7 +18,7 @@ Test instance at <http://lc.polyc0l0r.net>.
 
 ## License
 
-Copyright © 2014 Konrad Kühne
+Copyright © 2014 Konrad Kühne, Christian Weilbach
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
