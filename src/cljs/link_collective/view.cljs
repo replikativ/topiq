@@ -193,7 +193,7 @@
         add-post (om/get-state owner :add-post)
         add-comment (om/get-state owner :add-comment)
         selected-entries (om/get-state owner :selected-entries)]
-    (if (= "Not logged in." username)
+    (if (= "Not logged in" username)
       (js/alert "Please login or register.")
       (try
         (if (empty? selected-entries)
