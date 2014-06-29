@@ -52,6 +52,8 @@
 
 (def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?")
 
+(def hashtag-regexp #"(^|\s|\.|;|,|!|-)(#[\w\d\u00a1-\uffff_-]+)")
+
 
 (defn add-post
   "Transacts a new topiq to the stage"
@@ -59,7 +61,7 @@
   (let [post-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
-        hash-tags (re-seq #"#[\w\d-_]+" text)
+        hash-tags (map #(nth % 2) (re-seq hashtag-regexp text))
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
