@@ -110,7 +110,7 @@
   [comment]
   {[:.comment-text] (html-content
                      (md/mdToHtml
-                      (loop [text (:content comment)
+                      (loop [text (clojure.string/replace (:content comment) #"\'" "&rsquo;")
                              hashtags (map name (:hashtags comment))]
                         (if (empty? hashtags)
                           text
@@ -166,7 +166,7 @@
              (om/set-state! owner :selected-entries (conj selected-entries (:id topiq))))))))
     (set-attr "href" (str "#comments-" (:id topiq))))
    [:.topiq-text] (html-content
-                   (loop [text (:title topiq)
+                   (loop [text (clojure.string/replace (:title topiq) #"\'" "&rsquo;")
                           hashtags (map name (:hashtags topiq))]
                         (if (empty? hashtags)
                           text
@@ -201,7 +201,6 @@
           (add-comment username (last selected-entries)))
         (catch js/Object e
             (js/alert e))))))
-
 
 
 (deftemplate topiqs "templates/topiqs.html"
