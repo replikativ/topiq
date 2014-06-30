@@ -54,6 +54,9 @@
 
 (def hashtag-regexp #"(^|\s|\.|;|,|!|-)(#[\w\d\u00a1-\uffff_-]+)")
 
+(defn extract-hashtags [text]
+  (map #(nth % 2) (re-seq hashtag-regexp text)))
+
 
 (defn add-post
   "Transacts a new topiq to the stage"
@@ -61,7 +64,7 @@
   (let [post-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
-        hash-tags (map #(nth % 2) (re-seq hashtag-regexp text))
+        hash-tags (extract-hashtags text)
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
@@ -91,7 +94,7 @@
   (let [comment-id (uuid)
         ts (js/Date.)
         text (dom/value (dom/by-id "general-input-form"))
-        hash-tags (re-seq #"#[\w\d-_]+" text)
+        hash-tags (extract-hashtags text)
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
