@@ -179,7 +179,7 @@
    [:.topiq-author] (content (:author topiq))
    [:.topiq-ts] (content
                  (let [time-diff (- (js/Date.) (:ts topiq))]
-                   (if (> time-diff 3600000)
+                   (if (> time-diff 7200000)
                      (str (Math/round (/ time-diff 3600000)) " hours ago")
                      (if (< (Math/round (/ time-diff 60000)) 2)
                        "now"
