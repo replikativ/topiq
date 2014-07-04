@@ -73,6 +73,20 @@
                    result)))))
 
 
+(defn replace-hashtags
+  "Replace hashtags in text with html references"
+  [raw-text raw-hashtags]
+  (loop [text (clojure.string/replace raw-text #"\'" "&rsquo;")
+         hashtags (map name raw-hashtags)]
+    (if (empty? hashtags)
+      text
+      (recur
+       (clojure.string/replace
+        text
+        (re-pattern (first hashtags))
+        (str"<a href='#'>" (first hashtags) "</a>"))
+       (rest hashtags)))))
+
 
 ;; --- navbar templates and functions ---
 
@@ -108,18 +122,9 @@
 
 (defsnippet topiq-comment "templates/topiqs.html" [:.comment]
   [comment]
-  {[:.comment-text] (html-content
-                     (md/mdToHtml
-                      (loop [text (clojure.string/replace (:content comment) #"\'" "&rsquo;")
-                             hashtags (map name (:hashtags comment))]
-                        (if (empty? hashtags)
-                          text
-                          (recur
-                           (clojure.string/replace
-                            text
-                            (re-pattern (first hashtags))
-                            (str"<a href='#'>" (first hashtags) "</a>"))
-                           (rest hashtags))))))
+  {[:.comment-text] (-> (replace-hashtags (:content comment) (:hashtags comment))
+                        md/mdToHtml
+                        html-content)
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content
                    (let [time-diff (- (js/Date.) (:ts comment))]
@@ -165,17 +170,7 @@
                  (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-comment)))
              (om/set-state! owner :selected-entries (conj selected-entries (:id topiq))))))))
     (set-attr "href" (str "#comments-" (:id topiq))))
-   [:.topiq-text] (html-content
-                   (loop [text (clojure.string/replace (:title topiq) #"\'" "&rsquo;")
-                          hashtags (map name (:hashtags topiq))]
-                        (if (empty? hashtags)
-                          text
-                          (recur
-                           (clojure.string/replace
-                            text
-                            (re-pattern (first hashtags))
-                            (str"<a href='#'>" (first hashtags) "</a>"))
-                           (rest hashtags))))(md/mdToHtml (:title topiq)))
+   [:.topiq-text] (html-content (replace-hashtags (:title topiq) (:hashtags topiq)))
    [:.topiq-author] (content (:author topiq))
    [:.topiq-ts] (content
                  (let [time-diff (- (js/Date.) (:ts topiq))]
