@@ -170,7 +170,14 @@
                  (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-comment)))
              (om/set-state! owner :selected-entries (conj selected-entries (:id topiq))))))))
     (set-attr "href" (str "#comments-" (:id topiq))))
-   [:.topiq-text] (html-content (replace-hashtags (:title topiq) (:hashtags topiq)))
+   [:.topiq-text] (html-content
+                   (let [text (replace-hashtags (:title topiq) (:hashtags topiq))]
+                     (if (:detail-url topiq)
+                       (clojure.string/replace
+                        text
+                        (re-pattern (:detail-url topiq))
+                        (str "<a href='" (:detail-url topiq) "' target='_blank'>"(:detail-url topiq) "</a>"))
+                       text)))
    [:.topiq-author] (content (:author topiq))
    [:.topiq-ts] (content
                  (let [time-diff (- (js/Date.) (:ts topiq))]
