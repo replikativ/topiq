@@ -95,6 +95,18 @@
        (rest hashtags)))))
 
 
+(defn compute-time-diff
+  [timestamp]
+  (let [time-diff (- (js/Date.) timestamp)]
+    (cond
+     (>= time-diff 172800000) (str (Math/round (/ time-diff 86400000)) " days ago")
+     (< 86399999 time-diff 172800000) "yesterday"
+     (< 7199999 time-diff 86400000) (str (Math/round (/ time-diff 3600000)) " hours ago")
+     (< 119999 time-diff 7200000 ) (str (Math/round (/ time-diff 60000)) " minutes ago")
+     (< time-diff 120000) "now"
+     :else "NaN")))
+
+
 ;; --- navbar templates and functions ---
 
 (defn handle-text-change [e owner text]
@@ -133,13 +145,7 @@
                         md/mdToHtml
                         html-content)
    [:.comment-author] (content (:author comment))
-   [:.comment-ts] (content
-                   (let [time-diff (- (js/Date.) (:ts comment))]
-                     (if (> time-diff 7200000)
-                       (str (Math/round (/ time-diff 3600000)) " hours ago")
-                       (if (< (Math/round (/ time-diff 60000)) 2)
-                         "now"
-                         (str (Math/round (/ time-diff 60000)) " minutes ago")))))})
+   [:.comment-ts] (content (compute-time-diff (:ts comment)))})
 
 
 
@@ -159,14 +165,7 @@
                         (str "<a href='" (:detail-url topiq) "' target='_blank'>"(:detail-url topiq) "</a>"))
                        text)))
    [:.topiq-author] (content (:author topiq))
-   [:.topiq-ts] (content
-                 (let [time-diff (- (js/Date.) (:ts topiq))]
-                   (if (> time-diff 7200000)
-                     (str (Math/round (/ time-diff 3600000)) " hours ago")
-                     (if (< (Math/round (/ time-diff 60000)) 2)
-                       "now"
-                       (str (Math/round (/ time-diff 60000)) " minutes ago")))))})
-
+   [:.topiq-ts] (content (compute-time-diff (:ts topiq)))})
 
 
 (defn commit [owner]
@@ -188,13 +187,7 @@
   [app owner]
   {[:.topiq-text] (content (:title (get-topiq (om/get-state owner :selected-topiq) app)))
    [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
-   [:.topiq-ts] (content
-                 (let [time-diff (- (js/Date.) (:ts (get-topiq (om/get-state owner :selected-topiq) app)))]
-                   (if (> time-diff 7200000)
-                     (str (Math/round (/ time-diff 3600000)) " hours ago")
-                     (if (< (Math/round (/ time-diff 60000)) 2)
-                       "now"
-                       (str (Math/round (/ time-diff 60000)) " minutes ago")))))
+   [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) app))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
    [:.comments] (content (map topiq-comment (get-comments (om/get-state owner :selected-topiq) app)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)

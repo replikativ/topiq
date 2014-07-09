@@ -34,7 +34,6 @@
                    :ip "0.0.0.0" :port 17782)))
 
 
-
 ;; weasel websocket
 (if (= "localhost" (.getDomain uri))
   (do
@@ -247,5 +246,6 @@
 
 
   (def eve-data (get-in @stage [:volatile :val-atom]))
+
 
 )
