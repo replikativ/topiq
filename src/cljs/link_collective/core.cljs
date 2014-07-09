@@ -1,5 +1,5 @@
 (ns link-collective.core
-  (:require [link-collective.view :refer [topiqs navbar]]
+  (:require [link-collective.view :refer [topiqs navbar comments]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -32,6 +32,7 @@
     (cemerick.piggieback/cljs-repl
         :repl-env (weasel.repl.websocket/repl-env
                    :ip "0.0.0.0" :port 17782)))
+
 
 
 ;; weasel websocket
@@ -114,8 +115,7 @@
                                  :comment comment-id
                                  :tag (keyword t)
                                  :ts ts})
-                              hash-tags)
-                         )
+                              hash-tags))
                         '(fn [old params]
                            (:db-after (d/transact old params)))))
         (<! (s/commit! stage
@@ -151,11 +151,11 @@
   (reify
     om/IInitState
     (init-state [_]
-      {:selected-entries []
+      {:selected-topiq false
        :add-post (partial add-post stage)
        :add-comment (partial add-comment stage)})
     om/IRenderState
-    (render-state [this {:keys [selected-entries add-comment add-post] :as state}]
+    (render-state [this {:keys [selected-topiq add-comment add-post] :as state}]
       (let [val (om/value (get-in app ["eve@polyc0l0r.net"
                                        #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                                        "master"]))]
@@ -174,9 +174,10 @@
                                    #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                                    "master"] (:aborted val))
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
-
               :else
-              (om/build topiqs app {:init-state state}))))))
+              (if selected-topiq
+                (comments app owner)
+                (topiqs app owner)))))))
 
 
 (def trusted-hosts (atom #{:geschichte.stage/stage (.getDomain uri)}))
@@ -229,7 +230,6 @@
 
 
 
-
 (comment
   ;; recreate database
   (let [schema {:up-votes {:db/cardinality :db.cardinality/many}
@@ -238,82 +238,14 @@
                 :comments {:db/cardinality :db.cardinality/many}
                 :hashtags {:db/cardinality :db.cardinality/many}}
         conn   (d/create-conn schema)]
-    (go (<! (s/create-repo! stage
-                            "eve@polyc0l0r.net"
-                            "link-collective discourse."
-                            @conn
-                            "master"))))
+    (go
+      (<! (s/create-repo! stage
+                          "eve@polyc0l0r.net"
+                          "link-collective discourse."
+                          @conn
+                          "master"))))
 
 
   (def eve-data (get-in @stage [:volatile :val-atom]))
-
-  (let [db (get-in @eve-data ["eve@polyc0l0r.net"
-                                     #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                     "master"])
-             qr (sort-by :ts
-                         (map (partial zipmap [:id :title :detail-url :detail-text :user :ts])
-                              (d/q '[:find ?p ?title ?durl ?dtext ?user ?ts
-                                     :where
-                                     [?p :user ?user]
-                                     [?p :detail-url ?durl]
-                                     [?p :detail-text ?dtext]
-                                     [?p :title ?title]
-                                     [?p :ts ?ts]]
-                                   db)))]
-    qr)
-
-
-  (let [db (get-in @eve-data ["eve@polyc0l0r.net"
-                               #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                               "master"])]
-    (map (partial zipmap [:id :post :content :user :ts])
-         (d/q '[:find ?p ?pid ?content ?user ?ts
-                :in $
-                :where
-                [?p :post ?pid]
-                [?p :content ?content]
-                [?p :user ?user]
-                [?p :ts ?ts]]
-              db)))
-
-
-
-  [{:user "jane"
-    :id 1
-    :title "How to get a Designer"
-    :detail-url "https://medium.com/coding-design/how-to-get-a-designer-b3afdf5a853d"
-    :detail-text "Just some thoughts ..."
-    :comments [{:text "awesome :D" :user "adam" :date "today"}]
-    :hashtags #{"#coding" "#design"}}
-   {:user "john"
-    :id 2
-    :title "Greenwald's 'No Place to Hide': a compelling, vital narrative about official criminality"
-    :detail-text "Interesting article"
-    :detail-url "http://boingboing.net/2014/05/28/greenwalds-no-place-to-hid.html"
-    :comments [{:text "lies, all lies ..." :user "adam" :date "yesterday"}
-               {:text "Sucker" :user "eve" :date "today"}]
-    :hashtags #{"#greenwald" "#snowden" "#nsa"}}]
-
-
-  (let [post-id (uuid)
-        comment-id1 (uuid)
-        ts (js/Date.)]
-    (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                         "master"]
-                        [{:db/id post-id
-                          :title "Greenwald's 'No Place to Hide': a compelling, vital narrative about official criminality"
-                          :detail-text "Interesting article"
-                          :detail-url "http://boingboing.net/2014/05/28/greenwalds-no-place-to-hid.html"
-                          :user "jane"
-                          :ts ts}
-                         {:db/id comment-id1
-                          :post post-id
-                          :content "awesome :D"
-                          :user "adam"
-                          :date "today"}]
-                        '(fn [old params]
-                           (:db-after (d/transact old params)))))))
 
 )

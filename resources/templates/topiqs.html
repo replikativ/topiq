@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link id="bootstrap-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
     <link id="bootstrap-theme-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"/>
+    <link id="custom-css" rel="stylesheet" href="../public/style.css"/>
   </head>
   <body>
     <!-- topiqs list -->
@@ -13,11 +14,11 @@
         <!-- topiq -->
         <li class="list-group-item topiq">
           <!-- comment counter -->
-          <span class="badge comment-counter">42</span>
+          <span class="badge vote-counter">0</span>
           <!-- comment counter end -->
 
           <!-- topiq header -->
-          <div class="topiq-header" data-toggle="collapse" href="#comments-ID">
+          <div class="topiq-header">
             <!-- topiq text -->
             <h4 class="list-group-item-heading topiq-text">TOPIQ will be a very nice <a>#social</a> discourse <a>#network</a> in the near future. Visit us here <a href="https://lc.polyc0l0r.net" target="_blank">topiq.es</a> </h4>
             <!-- topiq text end -->
@@ -40,48 +41,14 @@
                 </small>
               </li>
               <!-- topiq timestamp end -->
-
+              <!-- topiq timestamp -->
+              <li>
+                <a href="#" class="comment-ref"><text class="comment-counter">42</text> comments...</a>
+              </li>
+              <!-- topiq timestamp end -->
             </ul>
           </div>
           <!--post header end-->
-
-          <!-- comment list -->
-          <div class="panel-collapse collapse topiq-comments" id="comments-ID">
-            <br>
-            <ul class="list-group comments">
-              <!-- comment -->
-              <li class="list-group-item comment">
-                <p class="comment-text">COMMENT</p>
-
-                <!-- aditional infos -->
-                <ul class="list-inline">
-
-                  <!-- comment author -->
-                  <li>
-                    <small>
-                      <em class="text-primary comment-author">
-                        AUTHOR
-                      </em>
-                    </small>
-                  </li>
-                  <!-- comment author end -->
-
-                  <!-- comment timestamp -->
-                  <li>
-                    <small class="comment-ts text-muted">
-                      TIMESTAMP
-                    </small>
-                  </li>
-                  <!-- comment timestamp end -->
-
-                </ul>
-                <!-- aditional infos end -->
-
-              </li>
-              <!-- comment end -->
-            </ul>
-          </div>
-          <!-- comment list end-->
         </li>
         <!--topiq end -->
     </div>
@@ -89,10 +56,10 @@
 
     <!-- primary input -->
     <div class="input-group">
-      <textarea class="form-control input-lg" type="text" id="general-input-form" rows="4" style="resize:vertical;" placeholder="Write a new post..."></textarea>
+      <textarea class="form-control input-lg" type="text" id="general-input-form" rows="4" style="resize:vertical;" placeholder="Write a new post..." maxlength="160"></textarea>
       <span class="input-group-btn" id="general-input-btn">
-        <button class="btn btn-primary btn-lg" id="send-button">
-          <span id="send-button-icon" class="glyphicon glyphicon-send"></span>
+        <button class="btn btn-primary btn-lg" id="post-btn">
+          <span class="glyphicon glyphicon-send"></span>
         </button>
       </span>
     </div>

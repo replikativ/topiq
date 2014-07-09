@@ -45,32 +45,39 @@
           qr))))
 
 
+(defn get-topiq [id stage]
+  (let [db (om/value
+            (get-in stage ["eve@polyc0l0r.net"
+                           #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                           "master"]))]
+    (d/entity db id)))
+
+
 (defn get-comments [post-id stage]
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                            "master"]))
-        result (map (partial zipmap [:id :post :content :author :ts])
-                    (d/q '[:find ?p ?pid ?content ?author ?ts
-                           :in $
-                           :where
-                           [?p :post ?pid]
-                           [?p :content ?content]
-                           [?p :author ?author]
-                           [?p :ts ?ts]]
-                         db))]
-    (filter
-     #(= (:post %) post-id)
-     (sort-by :ts
-              (map (fn [{:keys [id] :as p}]
-                     (assoc p :hashtags (first (first (d/q '[:find (distinct ?hashtag)
-                                                             :in $ ?pid
-                                                             :where
-                                                             [?h :comment ?pid]
-                                                             [?h :tag ?hashtag]]
-                                                           db
-                                                           id)))))
-                   result)))))
+        query '{:find [?p ?author ?content ?ts]
+                :in [$ ?pid]
+                :where [[?p :post ?pid]
+                        [?p :content ?content]
+                        [?p :author ?author]
+                        [?p :ts ?ts]]}
+        result (map (partial zipmap [:id :author :content :ts])
+                    (d/q query db post-id))]
+    (sort-by
+     :ts
+     (map
+      (fn [{:keys [id] :as p}]
+        (assoc p :hashtags (ffirst (d/q '[:find (distinct ?hashtag)
+                                          :in $ ?pid
+                                          :where
+                                          [?h :comment ?pid]
+                                          [?h :tag ?hashtag]]
+                                        db
+                                        id))))
+      result))))
 
 
 (defn replace-hashtags
@@ -120,7 +127,7 @@
 
 ;; --- user post templates ---
 
-(defsnippet topiq-comment "templates/topiqs.html" [:.comment]
+(defsnippet topiq-comment "templates/comment.html" [:.comment]
   [comment]
   {[:.comment-text] (-> (replace-hashtags (:content comment) (:hashtags comment))
                         md/mdToHtml
@@ -135,41 +142,12 @@
                          (str (Math/round (/ time-diff 60000)) " minutes ago")))))})
 
 
+
 (defsnippet topiq "templates/topiqs.html" [:.topiq]
   [topiq app owner]
   {[:.topiq] (set-attr "id" (str "topiq-" (:id topiq)))
    [:.comment-counter] (content (-> (get-comments (:id topiq) app) count))
-   [:.topiq-header]
-   (do->
-    (listen
-     :on-click
-     (fn [e]
-       ;; will cleanup this mess and migrate some of it into view state
-       (let [selected-entries (om/get-state owner :selected-entries)]
-         (if (some #{(:id topiq)} selected-entries)
-           (do
-             (dommy/remove-class! (sel1 (str "#topiq-" (:id topiq))) :selected-entry)
-             (if (> (count selected-entries) 1)
-               (dommy/add-class! (sel1 (str "#topiq-" (-> (remove #(= % (:id topiq)) selected-entries) last))) :selected-entry)
-               (do
-                 (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a new topiq ...")
-                 (dommy/remove-class! (sel1 :#send-button-icon) :glyphicon-comment)
-                 (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-send)))
-             (om/set-state!
-              owner
-              :selected-entries
-              (vec (remove #(= % (:id topiq)) selected-entries))))
-           (do
-             (doseq [topiq-header (sel :.topiq)]
-               (dommy/remove-class! topiq-header :selected-entry))
-             (dommy/add-class! (sel1 (str "#topiq-" (:id topiq))) :selected-entry)
-             (if (empty? selected-entries)
-               (do
-                 (dommy/set-attr! (sel1 :#general-input-form) :placeholder "Write a comment...")
-                 (dommy/remove-class! (sel1 :#send-button-icon) :glyphicon-send)
-                 (dommy/add-class! (sel1 :#send-button-icon) :glyphicon-comment)))
-             (om/set-state! owner :selected-entries (conj selected-entries (:id topiq))))))))
-    (set-attr "href" (str "#comments-" (:id topiq))))
+   [:.comment-ref] (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq)))
    [:.topiq-text] (html-content
                    (let [text (replace-hashtags (:title topiq) (:hashtags topiq))]
                      (if (:detail-url topiq)
@@ -185,9 +163,8 @@
                      (str (Math/round (/ time-diff 3600000)) " hours ago")
                      (if (< (Math/round (/ time-diff 60000)) 2)
                        "now"
-                       (str (Math/round (/ time-diff 60000)) " minutes ago")))))
-   [:.topiq-comments] (set-attr :id (str "comments-" (:id topiq)))
-   [:.comments] (content (map topiq-comment (get-comments (:id topiq) app)))})
+                       (str (Math/round (/ time-diff 60000)) " minutes ago")))))})
+
 
 
 (defn commit [owner]
@@ -205,6 +182,13 @@
             (js/alert e))))))
 
 
+(deftemplate comments "templates/comment.html"
+  [app owner]
+  {[:.topiq-text] (content (:title (get-topiq (om/get-state owner :selected-topiq) app)))
+   [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
+   [:.comments] (content (map topiq-comment (get-comments (om/get-state owner :selected-topiq) app)))})
+
+
 (deftemplate topiqs "templates/topiqs.html"
   [app owner]
   {[:.list-group] (content (map #(topiq % app owner) (get-topiqs app)))
@@ -213,4 +197,4 @@
                                                   (when (= (.-which %) 13)
                                                     (when (.-ctrlKey %)
                                                       (commit owner)))))
-   [:#send-button] (listen :on-click (fn [e] (commit owner)))})
+   [:#post-btn] (listen :on-click (fn [e] (commit owner)))})
