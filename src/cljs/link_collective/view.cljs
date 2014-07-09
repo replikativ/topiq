@@ -147,7 +147,9 @@
   [topiq app owner]
   {[:.topiq] (set-attr "id" (str "topiq-" (:id topiq)))
    [:.comment-counter] (content (-> (get-comments (:id topiq) app) count))
-   [:.comment-ref] (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq)))
+   [:.comment-ref] (do->
+                    (set-attr :href (str "#" (:id topiq)))
+                    (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq))))
    [:.topiq-text] (html-content
                    (let [text (replace-hashtags (:title topiq) (:hashtags topiq))]
                      (if (:detail-url topiq)
@@ -171,13 +173,13 @@
   (let [username (.-innerHTML (sel1 :#nav-current-user))
         add-post (om/get-state owner :add-post)
         add-comment (om/get-state owner :add-comment)
-        selected-entries (om/get-state owner :selected-entries)]
+        selected-topiq (om/get-state owner :selected-topiq)]
     (if (= "Not logged in" username)
       (js/alert "Please login or register.")
       (try
-        (if (empty? selected-entries)
-          (add-post username)
-          (add-comment username (last selected-entries)))
+        (if selected-topiq
+          (add-comment username selected-topiq)
+          (add-post username))
         (catch js/Object e
             (js/alert e))))))
 
@@ -185,8 +187,22 @@
 (deftemplate comments "templates/comment.html"
   [app owner]
   {[:.topiq-text] (content (:title (get-topiq (om/get-state owner :selected-topiq) app)))
+   [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
+   [:.topiq-ts] (content
+                 (let [time-diff (- (js/Date.) (:ts (get-topiq (om/get-state owner :selected-topiq) app)))]
+                   (if (> time-diff 7200000)
+                     (str (Math/round (/ time-diff 3600000)) " hours ago")
+                     (if (< (Math/round (/ time-diff 60000)) 2)
+                       "now"
+                       (str (Math/round (/ time-diff 60000)) " minutes ago")))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
-   [:.comments] (content (map topiq-comment (get-comments (om/get-state owner :selected-topiq) app)))})
+   [:.comments] (content (map topiq-comment (get-comments (om/get-state owner :selected-topiq) app)))
+   [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
+                                                  (commit owner)
+                                                  (when (= (.-which %) 13)
+                                                    (when (.-ctrlKey %)
+                                                      (commit owner)))))
+   [:#comment-btn] (listen :on-click (fn [e] (commit owner)))})
 
 
 (deftemplate topiqs "templates/topiqs.html"

@@ -22,6 +22,7 @@
             [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
             [com.ashafa.clutch.utils :as utils]
             [com.ashafa.clutch :refer [couch]]
+            [postal.core :as postal]
             [clojure.tools.logging :refer [info warn error]]))
 
 
@@ -124,7 +125,8 @@
 
   (GET "/*" [] (if (= (:build @server-state) :prod)
                  (static-page)
-                 (io/resource "public/index.html"))))
+                 (static-page)
+                 #_(io/resource "public/index.html"))))
 
 
 (defn read-config [state path]
