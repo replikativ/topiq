@@ -19,3 +19,7 @@ html, body {
     height: 100%;
     line-height: 100%;
 }
+
+.glyphicon-chevron-up, .glyphicon-chevron-down {
+    cursor: pointer;
+}
