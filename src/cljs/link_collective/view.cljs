@@ -101,10 +101,10 @@
    [:.comment-ts] (content (compute-time-diff (:ts comment)))})
 
 (defsnippet topiq-vote-group "templates/topiqs.html" [:.topiq-vote-group]
-  [stage app topiq-id voter]
-  {[:.glyphicon-chevron-up] (listen :on-click #(add-vote stage topiq-id voter :up))
-   [:.vote-counter] (content (vote-count app topiq-id))
-   [:.glyphicon-chevron-down] (listen :on-click #(add-vote stage topiq-id voter :down))})
+  [stage app topiq voter]
+  {[:.glyphicon-chevron-up] (listen :on-click #(add-vote stage (:id topiq) voter :up))
+   [:.vote-counter] (content (:vote-count topiq))
+   [:.glyphicon-chevron-down] (listen :on-click #(add-vote stage (:id topiq) voter :down))})
 
 
 
@@ -127,7 +127,7 @@
    [:.topiq-ts] (content (compute-time-diff (:ts topiq)))
    [:.topiq-vote-group] (substitute (topiq-vote-group (om/get-state owner :stage)
                                                       app
-                                                      (:id topiq)
+                                                      topiq
                                                       (.-innerHTML (sel1 :#nav-current-user))))})
 
 (deftemplate comments "templates/comment.html"

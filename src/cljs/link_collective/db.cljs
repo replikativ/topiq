@@ -11,9 +11,26 @@
 
 (def hashtag-regexp #"(^|\s|\.|;|,|!|-)(#[\w\d\u00a1-\uffff_-]+)")
 
-
-
 ;; --- datascript queries ---
+
+(defn vote-count [db topiq-id]
+  (let [vote-query '[:find (count ?vote)
+                     :in $, ?topiq-id, ?updown
+                     :where
+                     [?vote :topiq ?topiq-id]
+                     [?vote :voter ?voter]
+                     [?vote :updown ?updown]]
+        up-cnt (or (first (first (d/q vote-query db topiq-id :up)))
+                   0)
+        down-cnt (or (first (first (d/q vote-query db topiq-id :down)))
+                     0)]
+    (- up-cnt down-cnt)))
+
+(defn- rank [{:keys [ts vote-count]}]
+  (* vote-count (.exp js/Math (/ (- ts (.getTime (js/Date.)))
+                                 ;; scale decay so we don't hit zero rank too quickly
+                                 (* 7 24 3600 1000)))))
+
 
 (defn get-topiqs [stage]
   (let [db (om/value
@@ -30,15 +47,18 @@
                        [?p :ts ?ts]]
                      db))]
     (sort-by
-     :ts
+     (fn [t] (- (rank t)))
      (map (fn [{:keys [id] :as p}]
-            (assoc p :hashtags (first (first (d/q '[:find (distinct ?hashtag)
-                                                    :in $ ?pid
-                                                    :where
-                                                    [?h :post ?pid]
-                                                    [?h :tag ?hashtag]]
-                                                  db
-                                                  id)))))
+            (.log js/console "RANK" (rank (assoc p :vote-count (vote-count db id))))
+            (assoc p
+              :hashtags (first (first (d/q '[:find (distinct ?hashtag)
+                                             :in $ ?pid
+                                             :where
+                                             [?h :post ?pid]
+                                             [?h :tag ?hashtag]]
+                                           db
+                                           id)))
+              :vote-count (vote-count db id)))
           qr))))
 
 
@@ -76,22 +96,6 @@
                                         id))))
       result))))
 
-
-(defn vote-count [stage topiq-id]
-  (let [db (om/value (get-in stage ["eve@polyc0l0r.net"
-                                    #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                                    "master"]))
-        vote-query '[:find (count ?vote)
-                     :in $, ?topiq-id, ?updown
-                     :where
-                     [?vote :topiq ?topiq-id]
-                     [?vote :voter ?voter]
-                     [?vote :updown ?updown]]
-        up-cnt (or (first (first (d/q vote-query db topiq-id :up)))
-                   0)
-        down-cnt (or (first (first (d/q vote-query db topiq-id :down)))
-                     0)]
-    (- up-cnt down-cnt)))
 
 (defn- extract-hashtags [text]
   (map #(nth % 2) (re-seq hashtag-regexp text)))
