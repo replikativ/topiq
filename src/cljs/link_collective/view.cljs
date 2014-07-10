@@ -1,6 +1,7 @@
 (ns link-collective.view
   (:require [link-collective.db :refer [get-topiq get-topiqs get-comments vote-count
                                         add-post add-comment add-vote]]
+            [link-collective.plugins :refer [render-content replace-hashtags]]
             [figwheel.client :as fw :include-macros true]
             [kioo.om :refer [html-content content after set-attr do-> substitute listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
@@ -8,29 +9,13 @@
             [dommy.utils :as utils]
             [dommy.core :as dommy]
             [om.core :as om :include-macros true]
-            [domina :as dom]
-            [markdown.core :as md])
+            [domina :as dom])
   (:require-macros [kioo.om :refer [defsnippet deftemplate]]
                    [dommy.macros :refer [node sel sel1]]))
 
 (enable-console-print!)
 
 (println "Resistance is futile!")
-
-
-(defn replace-hashtags
-  "Replace hashtags in text with html references"
-  [raw-text raw-hashtags]
-  (loop [text (clojure.string/replace raw-text #"\'" "&rsquo;")
-         hashtags (map name raw-hashtags)]
-    (if (empty? hashtags)
-      text
-      (recur
-       (clojure.string/replace
-        text
-        (re-pattern (first hashtags))
-        (str "<a href='#ht=" (first hashtags) "'>" (first hashtags) "</a>"))
-       (rest hashtags)))))
 
 
 (defn compute-time-diff
@@ -94,8 +79,8 @@
 
 (defsnippet topiq-comment "templates/comment.html" [:.comment]
   [comment]
-  {[:.comment-text] (-> (replace-hashtags (:content comment) (:hashtags comment))
-                        md/mdToHtml
+  {[:.comment-text] (-> (:content comment)
+                        render-content
                         html-content)
    [:.comment-author] (content (:author comment))
    [:.comment-ts] (content (compute-time-diff (:ts comment)))})
@@ -116,7 +101,7 @@
                     (set-attr :href (str "#" (:id topiq)))
                     (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq))))
    [:.topiq-text] (html-content
-                   (let [text (replace-hashtags (:title topiq) (:hashtags topiq))]
+                   (let [text (replace-hashtags (:title topiq))]
                      (if (:detail-url topiq)
                        (clojure.string/replace
                         text
