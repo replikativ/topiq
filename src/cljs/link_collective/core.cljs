@@ -50,79 +50,8 @@
                 (:db-after (d/transact old params)))})
 
 
-(def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?")
 
-(def hashtag-regexp #"(^|\s|\.|;|,|!|-)(#[\w\d\u00a1-\uffff_-]+)")
-
-(defn extract-hashtags [text]
-  (map #(nth % 2) (re-seq hashtag-regexp text)))
-
-
-(defn add-post
-  "Transacts a new topiq to the stage"
-  [stage author]
-  (let [post-id (uuid)
-        ts (js/Date.)
-        text (dom/value (dom/by-id "general-input-form"))
-        hash-tags (extract-hashtags text)
-        urls (->> text
-                  (re-seq url-regexp)
-                  (map first))]
-    (dom/set-value! (dom/by-id "general-input-form") "")
-    (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                         "master"]
-                        (concat [{:db/id post-id
-                                  :title (str (apply str (take 160 text)) "...")
-                                  :detail-url (first urls)
-                                  :detail-text  text
-                                  :author author
-                                  :ts ts}]
-                                (map (fn [t] {:db/id (uuid)
-                                             :post post-id
-                                             :tag (keyword t)
-                                             :ts ts}) hash-tags))
-                        '(fn [old params]
-                           (:db-after (d/transact old params)))))
-        (<! (s/commit! stage
-                       {"eve@polyc0l0r.net"
-                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
-
-
-(defn add-comment [stage author post-id]
-  (let [comment-id (uuid)
-        ts (js/Date.)
-        text (dom/value (dom/by-id "general-input-form"))
-        hash-tags (extract-hashtags text)
-        urls (->> text
-                  (re-seq url-regexp)
-                  (map first))]
-    (dom/set-value! (dom/by-id "general-input-form") "")
-    (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
-                         "master"]
-                        (concat
-                         [{:db/id comment-id
-                           :post post-id
-                           :content text
-                           :author author
-                           :ts ts}]
-                         (map (fn [t]
-                                {:db/id (uuid)
-                                 :comment comment-id
-                                 :tag (keyword t)
-                                 :ts ts})
-                              hash-tags))
-                        '(fn [old params]
-                           (:db-after (d/transact old params)))))
-        (<! (s/commit! stage
-                       {"eve@polyc0l0r.net"
-                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
-
-
-;; we can do this runtime wide here, since we only use this datascript version
+; we can do this runtime wide here, since we only use this datascript version
 (read/register-tag-parser! 'datascript/DB datascript/read-db)
 (read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
 
@@ -151,10 +80,9 @@
     om/IInitState
     (init-state [_]
       {:selected-topiq false
-       :add-post (partial add-post stage)
-       :add-comment (partial add-comment stage)})
+       :stage stage})
     om/IRenderState
-    (render-state [this {:keys [selected-topiq add-comment add-post] :as state}]
+    (render-state [this {:keys [selected-topiq] :as state}]
       (let [val (om/value (get-in app ["eve@polyc0l0r.net"
                                        #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                                        "master"]))]
