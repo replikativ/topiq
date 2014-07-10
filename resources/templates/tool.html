@@ -38,67 +38,20 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-            <h4 class="modal-title" id="login-modal-title">Login</h4>
+            <h4 class="modal-title" id="login-modal-title">Login by Mail</h4>
           </div>
           <div class="modal-body">
+              <h4>THIS IS ALPHA-QUALITY SOFTWARE, DON'T EXPECT ANY RELIABILITY YET.</h4>
+            <p>By proceeding you agree that all your open contributions to the content of this site will be put under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative-Commons 4.0 Share-Alike licence.</a> as far as applicable in your jurisdiction. This means all the data here also belongs to you. We will add private (end-to-end) encrypted repositories in the future and you will be able to share selectively either per trust through encryption or by an open data licence.</p>
             <input class="form-control" type="text" id="login-user-input" placeholder="E-Mail"></input>
-            <br>
-            <input class="form-control" type="password" id="login-user-password" placeholder="Password"></input>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal" data-toggle="modal" data-target="#register-modal">Use only on this device</button>
-            <button type="button" class="btn btn-default" data-dismiss="modal" data-toggle="modal" data-target="#forgot-password-modal">Forgot password?</button>
-            <button type="button" class="btn btn-default" data-dismiss="modal" data-toggle="modal" data-target="#register-modal">Register</button>
-            <button type="button" id="modal-login-btn" class="btn btn-primary" data-dismiss="modal">Log in!</button>
+            <button type="button" id="modal-login-btn" class="btn btn-primary" data-dismiss="modal">Log me in!</button>
           </div>
         </div>
       </div>
     </div>
     <!-- login end -->
-
-    <!-- register -->
-    <div class="modal fade" id="register-modal" tabindex="-1" role="dialog" aria-labelledby="forgot-password-label" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-            <h4 class="modal-title" id="login-modal-title">Register</h4>
-          </div>
-          <div class="modal-body">
-            <p>This registration allows you to synchronize your edits on
-              different devices and allows the server to expose your edits to
-              other users.</p>
-            <input type="text" id="register-user-input" placeholder="E-Mail"></input>
-            <input type="text" id="register-user-password" placeholder="Password"></input>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Request instructions</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- register end -->
-
-    <!-- forgot password -->
-    <div class="modal fade" id="forgot-password-modal" tabindex="-1" role="dialog" aria-labelledby="reset-password-label" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-            <h4 class="modal-title" id="login-modal-title">Reset your password</h4>
-          </div>
-          <div class="modal-body">
-            <p>Enter your E-Mail and we will send you a mail with
-              instructions how to reset your password. NOT IMPLEMENTED YET.</p>
-            <input type="text" id="forgot-user-input" placeholder="E-Mail"></input>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Register!</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- forgot password end -->
 
     <!-- about -->
     <div class="modal fade" id="about-modal" tabindex="-1" role="dialog" aria-labelledby="about-label" aria-hidden="true">
@@ -111,7 +64,7 @@
           <div class="modal-body">
             <p>
               You can run your own peer and extend the
-              <a target="_blank" href="https://github.com/kordano/link-collective">application through plugins.</a>
+              <a target="_blank" href="https://github.com/kordano/link-collective">application through plugins or roll your own application on the same data!(base).</a>
               This application implements social networking features on top of a
               <a target="_blank" href="https://github.com/ghubber/geschichte">decentralized distributed database.</a>
             </p>
