@@ -174,7 +174,7 @@
                         ["eve@polyc0l0r.net"
                          #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                          "master"]
-                        [{:db/id (uuid)
+                        [{:db/id (uuid [voter topiq-id])
                           :topiq topiq-id
                           :voter voter
                           :updown updown
