@@ -35,7 +35,7 @@
 
 
 ;; weasel websocket
-(if (= "localhost" (.getDomain uri))
+#_(if (= "localhost" (.getDomain uri))
   (do
     (figw/watch-and-reload
      ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
@@ -52,8 +52,9 @@
 
 
 ; we can do this runtime wide here, since we only use this datascript version
-(read/register-tag-parser! 'datascript/DB datascript/read-db)
-(read/register-tag-parser! 'datascript.Datom datascript/map->Datom)
+(read/register-tag-parser! 'datascript/DB datascript/db-from-reader)
+(read/register-tag-parser! 'datascript/Datom datascript/datom-from-reader)
+
 
 
 (defn navbar-view
@@ -121,8 +122,8 @@
          ;; empty db
          (atom (read-string
                 "{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" {:transactions [[#uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T19:58:55.573-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :comments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T19:58:55.573-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" []}, :public false, :pull-requests {}}}}"))
-         (atom  {'datascript/DB datascript/read-db
-                 'datascript.Datom datascript/map->Datom}))))
+         (atom  {'datascript/Datom datascript/datom-from-reader
+                 'datascript/DB datascript/db-from-reader}))))
 
   (def peer (client-peer "CLIENT-PEER"
                          store

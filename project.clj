@@ -8,7 +8,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2234"]
+                 [org.clojure/clojurescript "0.0-2268"]
                  [org.clojure/core.cache "0.6.3"]
                  [org.clojure/core.memoize "0.5.6" :exclusions [org.clojure/core.cache]]
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
@@ -25,7 +25,7 @@
 
                  [domina "1.0.2"]
                  [prismatic/dommy "0.1.2"]
-                 [datascript "0.1.5"]
+                 [datascript "0.1.6"]
                  [om "0.6.3"]
                  [kioo "0.4.0"]
                  [figwheel "0.1.3-SNAPSHOT"]
