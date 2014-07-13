@@ -70,7 +70,7 @@
     (d/entity db id)))
 
 
-(defn get-comments [post-id stage]
+(defn get-arguments [post-id stage]
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
                            #uuid "b09d8708-352b-4a71-a845-5f838af04116"
@@ -90,7 +90,7 @@
         (assoc p :hashtags (ffirst (d/q '[:find (distinct ?hashtag)
                                           :in $ ?pid
                                           :where
-                                          [?h :comment ?pid]
+                                          [?h :argument ?pid]
                                           [?h :tag ?hashtag]]
                                         db
                                         id))))
@@ -134,8 +134,8 @@
                         {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
 
 
-(defn add-comment [stage author post-id text]
-  (let [comment-id (uuid)
+(defn add-argument [stage author post-id text]
+  (let [argument-id (uuid)
         ts (js/Date.)
         hash-tags (extract-hashtags text)
         urls (->> text
@@ -146,14 +146,14 @@
                          #uuid "b09d8708-352b-4a71-a845-5f838af04116"
                          "master"]
                         (concat
-                         [{:db/id comment-id
+                         [{:db/id argument-id
                            :post post-id
                            :content text
                            :author author
                            :ts ts}]
                          (map (fn [t]
                                 {:db/id (uuid)
-                                 :comment comment-id
+                                 :argument argument-id
                                  :tag (keyword t)
                                  :ts ts})
                               hash-tags)

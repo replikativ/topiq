@@ -6,7 +6,7 @@ html, body {
     border-left: 4px solid steelblue;
 }
 
-#post-btn,#comment-btn {
+#post-btn,#argument-btn {
     height: 100%;
     line-height: 100%;
     padding-top: 0;

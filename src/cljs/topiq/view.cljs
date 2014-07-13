@@ -1,6 +1,6 @@
 (ns topiq.view
-  (:require [topiq.db :refer [get-topiq get-topiqs get-comments vote-count
-                                        add-post add-comment add-vote]]
+  (:require [topiq.db :refer [get-topiq get-topiqs get-arguments vote-count
+                                        add-post add-argument add-vote]]
             [topiq.plugins :refer [render-content replace-hashtags]]
             [figwheel.client :as fw :include-macros true]
             [kioo.om :refer [html-content content after set-attr do-> substitute listen prepend append html remove-class add-class]]
@@ -53,7 +53,7 @@
       (js/alert "Please login or register.")
       (try
         (if selected-topiq
-          (add-comment stage username selected-topiq (dom/value (dom/by-id "general-input-form")))
+          (add-argument stage username selected-topiq (dom/value (dom/by-id "general-input-form")))
           (add-post stage username (dom/value (dom/by-id "general-input-form"))))
         (dom/set-value! (dom/by-id "general-input-form") "")
         (catch js/Object e
@@ -77,14 +77,13 @@
 
 
 ;; --- user post templates ---
-
-(defsnippet topiq-comment "templates/comment.html" [:.comment]
-  [comment]
-  {[:.comment-text] (-> (:content comment)
+(defsnippet topiq-argument "templates/argument.html" [:.argument]
+  [argument]
+  {[:.argument-text] (-> (:content argument)
                         render-content
                         html-content)
-   [:.comment-author] (content (:author comment))
-   [:.comment-ts] (content (compute-time-diff (:ts comment)))})
+   [:.argument-author] (content (:author argument))
+   [:.argument-ts] (content (compute-time-diff (:ts argument)))})
 
 (defsnippet topiq-vote-group "templates/topiqs.html" [:.topiq-vote-group]
   [stage app topiq voter]
@@ -97,8 +96,8 @@
 (defsnippet topiq "templates/topiqs.html" [:.topiq]
   [topiq app owner]
   {[:.topiq] (set-attr "id" (str "topiq-" (:id topiq)))
-   [:.comment-counter] (content (-> (get-comments (:id topiq) app) count))
-   [:.comment-ref] (do->
+   [:.argument-counter] (content (-> (get-arguments (:id topiq) app) count))
+   [:.argument-ref] (do->
                     (set-attr :href (str "#" (:id topiq)))
                     (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq))))
    [:.topiq-text] (html-content
@@ -116,7 +115,7 @@
                                                       topiq
                                                       (.-innerHTML (sel1 :#nav-current-user))))})
 
-(deftemplate comments "templates/comment.html"
+(deftemplate arguments "templates/argument.html"
   [app owner]
   {[:.topiq-text] (html-content
                    (let [topiq (get-topiq (om/get-state owner :selected-topiq) app)
@@ -130,13 +129,13 @@
    [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
    [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) app))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
-   [:.comments] (content (map topiq-comment (get-comments (om/get-state owner :selected-topiq) app)))
+   [:.arguments] (content (map topiq-argument (get-arguments (om/get-state owner :selected-topiq) app)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)
                                                   (when (= (.-which %) 13)
                                                     (when (.-ctrlKey %)
                                                       (commit owner)))))
-   [:#comment-btn] (listen :on-click (fn [e] (commit owner)))})
+   [:#argument-btn] (listen :on-click (fn [e] (commit owner)))})
 
 
 (deftemplate topiqs "templates/topiqs.html"
