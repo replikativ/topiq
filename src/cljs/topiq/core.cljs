@@ -1,5 +1,5 @@
 (ns topiq.core
-  (:require [topiq.view :refer [topiqs navbar arguments]]
+  (:require [topiq.view :refer [topiqs navbar topiq-arguments]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -104,7 +104,7 @@
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
               :else
               (if selected-topiq
-                (arguments app owner)
+                (topiq-arguments app owner)
                 (topiqs app owner)))))))
 
 

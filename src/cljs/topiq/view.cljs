@@ -115,7 +115,8 @@
                                                       topiq
                                                       (.-innerHTML (sel1 :#nav-current-user))))})
 
-(deftemplate arguments "templates/argument.html"
+;; WARNING: pure arguments name clashes with compiler
+(deftemplate topiq-arguments "templates/argument.html"
   [app owner]
   {[:.topiq-text] (html-content
                    (let [topiq (get-topiq (om/get-state owner :selected-topiq) app)
