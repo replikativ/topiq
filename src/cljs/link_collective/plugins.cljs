@@ -16,7 +16,7 @@
 (defn replace-hashtags
   "Replace hashtags in string with html references"
   [s]
-  (str/replace s hashtag-regexp "<a href='#h=$2'>$2</a>" ))
+  (str/replace s hashtag-regexp "$1<a href='#h=$2'>$2</a>"))
 
 (defn img-responsive [s]
   (str/replace s "<img " "<img class=\"img-responsive\""))
