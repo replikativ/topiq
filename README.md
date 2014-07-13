@@ -1,10 +1,10 @@
-# link-collective
+# Topiq
 
 A social networking/messaging web-application based on P2P synching.
 
 ## Usage
 
-Test instance at <http://lc.polyc0l0r.net>.
+Test instance at <https://topiq.es>.
 
 **WARNING:** as of now, datascript has to be installed locally, get it [here](https://github.com/tonsky/datascript).
 

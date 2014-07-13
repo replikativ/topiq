@@ -1,5 +1,5 @@
-(ns link-collective.core
-  (:require [link-collective.view :refer [topiqs navbar comments]]
+(ns topiq.core
+  (:require [topiq.view :refer [topiqs navbar comments]]
             [clojure.data :refer [diff]]
             [domina :as dom]
             [figwheel.client :as figw :include-macros true]
@@ -35,7 +35,7 @@
 
 
 ;; weasel websocket
-#_(if (= "localhost" (.getDomain uri))
+(if (= "localhost" (.getDomain uri))
   (do
     (figw/watch-and-reload
      ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
@@ -169,7 +169,7 @@
     (go
       (<! (s/create-repo! stage
                           "eve@polyc0l0r.net"
-                          "link-collective discourse."
+                          "topiq discourse."
                           @conn
                           "master"))))
 

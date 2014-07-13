@@ -1,4 +1,4 @@
-(ns link-collective.core
+(ns topiq.core
   (:gen-class :main true)
   (:require [clojure.edn :as edn]
             [net.cgrand.enlive-html :refer [deftemplate set-attr substitute html] :as enlive]
@@ -48,7 +48,7 @@
    (fn [old new] (assoc-in old [:store] new))
    #_(<!! (new-mem-store))
    (<!! (new-couch-store
-             (couch (utils/url (:couchdb-url @state) "link-collective"))
+             (couch (utils/url (:couchdb-url @state) "topiq"))
              (:tag-table @state))))
   state)
 
@@ -125,8 +125,7 @@
 
   (GET "/*" [] (if (= (:build @server-state) :prod)
                  (static-page)
-                 (static-page)
-                 #_(io/resource "public/index.html"))))
+                 (io/resource "public/index.html"))))
 
 
 (defn read-config [state path]

@@ -1,4 +1,4 @@
-(defproject link-collective "0.1.0-SNAPSHOT"
+(defproject topiq "0.1.0-SNAPSHOT"
 
   :description "An app to collectively link and share data."
 
@@ -35,9 +35,9 @@
 
                  [weasel "0.2.1"]]
 
-  :main link-collective.core
+  :main topiq.core
 
-  :uberjar-name "link-collective-standalone.jar"
+  :uberjar-name "topiq-standalone.jar"
 
   :min-lein-version "2.0.0"
 

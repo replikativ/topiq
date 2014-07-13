@@ -1,4 +1,4 @@
-(ns link-collective.db
+(ns topiq.db
   (:require [datascript :as d]
             [om.core :as om :include-macros true] ;; TODO avoid in db?
             [hasch.core :refer [uuid]]

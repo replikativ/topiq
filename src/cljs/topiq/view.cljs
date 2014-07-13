@@ -1,7 +1,7 @@
-(ns link-collective.view
-  (:require [link-collective.db :refer [get-topiq get-topiqs get-comments vote-count
+(ns topiq.view
+  (:require [topiq.db :refer [get-topiq get-topiqs get-comments vote-count
                                         add-post add-comment add-vote]]
-            [link-collective.plugins :refer [render-content replace-hashtags]]
+            [topiq.plugins :refer [render-content replace-hashtags]]
             [figwheel.client :as fw :include-macros true]
             [kioo.om :refer [html-content content after set-attr do-> substitute listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
@@ -107,7 +107,7 @@
                        (clojure.string/replace
                         text
                         (re-pattern (:detail-url topiq))
-                        (str "<a href='" (:detail-url topiq) "' target='_blank'>"(:detail-url topiq) "</a>"))
+                        (str "<a href='" (:detail-url topiq) "' target='_blank'> "(:detail-url topiq) " </a>"))
                        text)))
    [:.topiq-author] (content (:author topiq))
    [:.topiq-ts] (content (compute-time-diff (:ts topiq)))
@@ -118,7 +118,15 @@
 
 (deftemplate comments "templates/comment.html"
   [app owner]
-  {[:.topiq-text] (content (:title (get-topiq (om/get-state owner :selected-topiq) app)))
+  {[:.topiq-text] (html-content
+                   (let [topiq (get-topiq (om/get-state owner :selected-topiq) app)
+                         text (replace-hashtags (:title topiq))]
+                     (if (:detail-url topiq)
+                       (clojure.string/replace
+                        text
+                        (re-pattern (:detail-url topiq))
+                        (str " <a href='" (:detail-url topiq) "' target='_blank'> " (:detail-url topiq) " </a> " ))
+                       text)))
    [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
    [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) app))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))

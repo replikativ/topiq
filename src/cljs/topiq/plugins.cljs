@@ -1,5 +1,5 @@
-(ns link-collective.plugins
-  (:require [link-collective.db :refer [hashtag-regexp]]
+(ns topiq.plugins
+  (:require [topiq.db :refer [hashtag-regexp]]
             [markdown.core :as md]
             [clojure.string :as str]))
 
