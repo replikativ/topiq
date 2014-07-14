@@ -35,7 +35,7 @@
 (defn get-topiqs [stage]
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
-                           #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                            "master"]))
         qr (map (partial zipmap [:id :title :detail-url :detail-text :author :ts])
                 (d/q '[:find ?p ?title ?durl ?dtext ?author ?ts
@@ -65,7 +65,7 @@
 (defn get-topiq [id stage]
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
-                           #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                            "master"]))]
     (d/entity db id)))
 
@@ -73,7 +73,7 @@
 (defn get-arguments [post-id stage]
   (let [db (om/value
             (get-in stage ["eve@polyc0l0r.net"
-                           #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                            "master"]))
         query '{:find [?p ?author ?content ?ts]
                 :in [$ ?pid]
@@ -111,7 +111,7 @@
                   (map first))]
     (go (<! (s/transact stage
                         ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                         #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         (concat [{:db/id post-id
                                   :title (str (apply str (take 160 text)) "...")
@@ -131,7 +131,7 @@
                            (:db-after (d/transact old params)))))
         (<! (s/commit! stage
                        {"eve@polyc0l0r.net"
-                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
+                        {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
 
 
 (defn add-argument [stage author post-id text]
@@ -143,7 +143,7 @@
                   (map first))]
     (go (<! (s/transact stage
                         ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                         #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         (concat
                          [{:db/id argument-id
@@ -165,14 +165,14 @@
                            (:db-after (d/transact old params)))))
         (<! (s/commit! stage
                        {"eve@polyc0l0r.net"
-                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
+                        {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
 
 
 (defn add-vote [stage topiq-id voter updown]
   (let [ts (js/Date.)]
     (go (<! (s/transact stage
                         ["eve@polyc0l0r.net"
-                         #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                         #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         [{:db/id (uuid [voter topiq-id])
                           :topiq topiq-id
@@ -183,4 +183,4 @@
                            (:db-after (d/transact old params)))))
         (<! (s/commit! stage
                        {"eve@polyc0l0r.net"
-                        {#uuid "b09d8708-352b-4a71-a845-5f838af04116" #{"master"}}})))))
+                        {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))

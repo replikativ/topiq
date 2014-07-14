@@ -85,12 +85,12 @@
     om/IRenderState
     (render-state [this {:keys [selected-topiq] :as state}]
       (let [val (om/value (get-in app ["eve@polyc0l0r.net"
-                                       #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                        "master"]))]
         (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
               (do
                 (s/merge! stage ["eve@polyc0l0r.net"
-                                 #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                  "master"]
                           (concat (map :id (:commits-a val))
                                   (map :id (:commits-b val))))
@@ -99,7 +99,7 @@
               (= (type val) geschichte.stage/Abort) ;; reapply
               (do
                 (s/transact stage ["eve@polyc0l0r.net"
-                                   #uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                    "master"] (:aborted val))
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
               :else
@@ -119,11 +119,10 @@
 (go
   (def store
     (<! (new-mem-store
-         ;; empty db
          (atom (read-string
-                "{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" {:transactions [[#uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-06-26T19:58:55.573-00:00\", :author \"eve@polyc0l0r.net\"}, #uuid \"197bf9d9-1edf-5a11-b4d9-e3ce09d58556\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), \"eve@polyc0l0r.net\" {#uuid \"b09d8708-352b-4a71-a845-5f838af04116\" {:branches {\"master\" #{#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\"}}, :id #uuid \"b09d8708-352b-4a71-a845-5f838af04116\", :description \"link-collective discourse.\", :head \"master\", :last-update #inst \"2014-06-26T19:58:55.573-00:00\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :causal-order {#uuid \"0343106c-fd31-55f0-ac48-eb1f92427160\" []}, :public false, :pull-requests {}}}}"))
-         (atom  {'datascript/Datom datascript/datom-from-reader
-                 'datascript/DB datascript/db-from-reader}))))
+                "{#uuid \"23c147d1-35d5-5ae3-bfcf-50ac151f6bba\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), #uuid \"2129d0b6-8e6d-5917-962a-2dde8dde3e86\" {:transactions [[#uuid \"23c147d1-35d5-5ae3-bfcf-50ac151f6bba\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-07-14T09:48:49.199-00:00\", :author \"eve@polyc0l0r.net\"}, \"eve@polyc0l0r.net\" {#uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\" {:description \"topiq discourse.\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :pull-requests {}, :causal-order {#uuid \"2129d0b6-8e6d-5917-962a-2dde8dde3e86\" []}, :public false, :branches {\"master\" #{#uuid \"2129d0b6-8e6d-5917-962a-2dde8dde3e86\"}}, :head \"master\", :last-update #inst \"2014-07-14T09:48:49.199-00:00\", :id #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"}}}")
+               (atom {'datascript/Datom datascript/datom-from-reader
+                 'datascript/DB datascript/db-from-reader})))))
 
   (def peer (client-peer "CLIENT-PEER"
                          store
@@ -133,7 +132,7 @@
 
   (<! (s/subscribe-repos! stage
                           {"eve@polyc0l0r.net"
-                           {#uuid "b09d8708-352b-4a71-a845-5f838af04116"
+                           {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                             #{"master"}}}))
 
   ;; fix back to functions in production
@@ -167,14 +166,12 @@
                 :hashtags {:db/cardinality :db.cardinality/many}}
         conn   (d/create-conn schema)]
     (go
-      (<! (s/create-repo! stage
-                          "eve@polyc0l0r.net"
-                          "topiq discourse."
-                          @conn
-                          "master"))))
+      (println (<! (s/create-repo! stage
+                                   "eve@polyc0l0r.net"
+                                   "topiq discourse."
+                                   @conn
+                                   "master")))))
 
-
-  (def eve-data (get-in @stage [:volatile :val-atom]))
-
+  (-> @stage :volatile :peer deref :volatile :store :state deref)
 
 )
