@@ -21,13 +21,19 @@
 (defn img-responsive [s]
   (str/replace s "<img " "<img class=\"img-responsive\""))
 
+
+(defn new-tab-link [s]
+  (str/replace s "<a " "<a target='_blank'"))
+
+
 (defn post-markdown-plugins [s]
   (-> s
       replace-hashtags
-      img-responsive))
+      img-responsive
+      new-tab-link))
 
 (defn render-content [s]
   (-> s
       pre-markdown-plugins
-      md/mdToHtml
+      md/md->html
       post-markdown-plugins))
