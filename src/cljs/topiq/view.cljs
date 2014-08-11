@@ -1,11 +1,10 @@
 (ns topiq.view
   (:require [topiq.db :refer [get-topiq get-topiqs get-arguments vote-count
-                                        add-post add-argument add-vote]]
+                                        add-topiq add-argument add-vote]]
             [topiq.plugins :refer [render-content replace-hashtags]]
             [figwheel.client :as fw :include-macros true]
             [kioo.om :refer [html-content content after set-attr do-> substitute listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
-            [datascript :as d]
             [dommy.utils :as utils]
             [dommy.core :as dommy]
             [om.core :as om :include-macros true]
@@ -54,7 +53,7 @@
       (try
         (if selected-topiq
           (add-argument stage username selected-topiq (dom/value (dom/by-id "general-input-form")))
-          (add-post stage username (dom/value (dom/by-id "general-input-form"))))
+          (add-topiq stage username (dom/value (dom/by-id "general-input-form"))))
         (dom/set-value! (dom/by-id "general-input-form") "")
         (catch js/Object e
             (js/alert e))))))

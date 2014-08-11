@@ -100,7 +100,7 @@
 (defn- extract-hashtags [text]
   (map #(nth % 2) (re-seq hashtag-regexp text)))
 
-(defn add-post
+(defn add-topiq
   "Transacts a new topiq to the stage"
   [stage author text]
   (let [post-id (uuid)
