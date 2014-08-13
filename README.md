@@ -6,8 +6,6 @@ A social networking/messaging web-application based on P2P synching.
 
 Test instance at <https://topiq.es>.
 
-**WARNING:** as of now, datascript has to be installed locally, get it [here](https://github.com/tonsky/datascript).
-
 ## TODO
 
 - organized in a discourse/conversation (branch?), e.g. private
