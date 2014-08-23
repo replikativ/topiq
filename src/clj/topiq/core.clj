@@ -11,6 +11,8 @@
             [geschichte.sync :refer [server-peer client-peer]]
             [geschichte.platform :refer [create-http-kit-handler!]]
             [geschichte.auth :refer [auth]]
+            [geschichte.fetch :refer [fetcher]]
+            [geschichte.publish-requests :refer [meta-pub-requester]]
             [konserve.store :refer [new-mem-store]]
             [konserve.platform :refer [new-couch-store]]
             [compojure.handler :refer [site api]]
@@ -76,8 +78,10 @@
                               "/geschichte/ws")
                          tag-table)
                         store
-                        (partial auth store auth-fn cred-fn (atom (or (:trusted-hosts @state)
-                                                                      #{}))))))
+                        (comp (partial meta-pub-requester store)
+                              (partial fetcher store)
+                              (partial auth store auth-fn cred-fn (atom (or (:trusted-hosts @state)
+                                                                            #{})))))))
   state)
 
 

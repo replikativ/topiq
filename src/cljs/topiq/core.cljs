@@ -9,6 +9,8 @@
             [geschichte.stage :as s]
             [geschichte.sync :refer [client-peer]]
             [geschichte.auth :refer [auth]]
+            [geschichte.fetch :refer [fetcher]]
+            [geschichte.publish-requests :refer [meta-pub-requester]]
             [konserve.store :refer [new-mem-store]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
@@ -126,7 +128,9 @@
 
   (def peer (client-peer "CLIENT-PEER"
                          store
-                         (partial auth store auth-fn (fn [creds] nil) trusted-hosts)))
+                         (comp (partial meta-pub-requester store)
+                               (partial fetcher store)
+                               (partial auth store auth-fn (fn [creds] nil) trusted-hosts))))
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
 
