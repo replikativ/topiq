@@ -8,10 +8,10 @@
             [datascript :as d]
             [geschichte.stage :as s]
             [geschichte.sync :refer [client-peer]]
-            [geschichte.auth :refer [auth]]
-            [geschichte.fetch :refer [fetcher]]
-            [geschichte.publish-requests :refer [meta-pub-requester]]
             [konserve.store :refer [new-mem-store]]
+            [geschichte.p2p.auth :refer [auth]]
+            [geschichte.p2p.fetch :refer [fetch]]
+            [geschichte.p2p.publish-on-request :refer [publish-on-request]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
@@ -128,9 +128,8 @@
 
   (def peer (client-peer "CLIENT-PEER"
                          store
-                         (comp (partial meta-pub-requester store)
-                               (partial fetcher store)
-                               (partial auth store auth-fn (fn [creds] nil) trusted-hosts))))
+                         (comp (partial publish-on-request store)
+                               (partial fetch store))))
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
 
