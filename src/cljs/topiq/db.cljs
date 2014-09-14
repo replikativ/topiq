@@ -110,7 +110,7 @@
                   (re-seq url-regexp)
                   (map first))]
     (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
+                        [author
                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         (concat [{:db/id post-id
@@ -127,11 +127,8 @@
                                              :post post-id
                                              :url u
                                              :ts ts}) urls))
-                        '(fn [old params]
-                           (:db-after (d/transact old params)))))
-        (<! (s/commit! stage
-                       {"eve@polyc0l0r.net"
-                        {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
+                        '(fn [old params] (d/db-with old params))))
+        (<! (s/commit! stage {author {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
 
 
 (defn add-argument [stage author post-id text]
@@ -142,7 +139,7 @@
                   (re-seq url-regexp)
                   (map first))]
     (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
+                        [author
                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         (concat
@@ -161,17 +158,14 @@
                                       :post post-id
                                       :url u
                                       :ts ts}) urls))
-                        '(fn [old params]
-                           (:db-after (d/transact old params)))))
-        (<! (s/commit! stage
-                       {"eve@polyc0l0r.net"
-                        {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
+                        '(fn [old params] (d/db-with old params))))
+        (<! (s/commit! stage {author {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
 
 
 (defn add-vote [stage topiq-id voter updown]
   (let [ts (js/Date.)]
     (go (<! (s/transact stage
-                        ["eve@polyc0l0r.net"
+                        [voter
                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         [{:db/id (uuid [voter topiq-id])
@@ -179,8 +173,5 @@
                           :voter voter
                           :updown updown
                           :ts ts}]
-                        '(fn [old params]
-                           (:db-after (d/transact old params)))))
-        (<! (s/commit! stage
-                       {"eve@polyc0l0r.net"
-                        {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
+                        '(fn [old params] (d/db-with old params))))
+        (<! (s/commit! stage {voter {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))

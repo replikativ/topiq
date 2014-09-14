@@ -11,6 +11,8 @@
             [konserve.store :refer [new-mem-store]]
             [geschichte.p2p.auth :refer [auth]]
             [geschichte.p2p.fetch :refer [fetch]]
+            [geschichte.p2p.hooks :refer [hook]]
+            [geschichte.p2p.hash :refer [ensure-hash]]
             [geschichte.p2p.publish-on-request :refer [publish-on-request]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
@@ -39,17 +41,14 @@
 ;; weasel websocket
 (if (= "localhost" (.getDomain uri))
   (do
-    (figw/watch-and-reload
+    #_(figw/watch-and-reload
      ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
      :jsload-callback (fn [] (print "reloaded")))
     (ws-repl/connect "ws://localhost:17782" :verbose true)))
 
 
 (def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
-              '(fn [old params]
-                 (:db-after (d/transact old params)))
-              (fn [old params]
-                (:db-after (d/transact old params)))})
+              '(fn [old params] (d/db-with old params)) (fn [old params] (d/db-with old params))})
 
 
 
@@ -61,14 +60,15 @@
 
 (defn navbar-view
   "Builds navbar with search, user menu and user-related modals"
-  [app owner]
+  [login-fn app owner]
   (reify
     om/IInitState
     (init-state [_]
       {:current-user "Not logged in"
        :search-placeholder "Search..."
        :search-text ""
-       :login-user-text ""})
+       :login-user-text ""
+       :login-fn login-fn})
     om/IRenderState
     (render-state [this {:keys [current-user search-text login-user-text search-placeholder] :as state}]
       (navbar
@@ -87,12 +87,12 @@
     om/IRenderState
     (render-state [this {:keys [selected-topiq] :as state}]
       (let [val (om/value (get-in app ["eve@polyc0l0r.net"
-                                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                                       #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                        "master"]))]
         (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
               (do
                 (s/merge! stage ["eve@polyc0l0r.net"
-                                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                                 #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                  "master"]
                           (concat (map :id (:commits-a val))
                                   (map :id (:commits-b val))))
@@ -118,18 +118,24 @@
     {"eve@polyc0l0r.net" "lisp"}))
 
 
+
+
 (go
   (def store
     (<! (new-mem-store
          (atom (read-string
-                "{#uuid \"23c147d1-35d5-5ae3-bfcf-50ac151f6bba\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), #uuid \"2129d0b6-8e6d-5917-962a-2dde8dde3e86\" {:transactions [[#uuid \"23c147d1-35d5-5ae3-bfcf-50ac151f6bba\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-07-14T09:48:49.199-00:00\", :author \"eve@polyc0l0r.net\"}, \"eve@polyc0l0r.net\" {#uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\" {:description \"topiq discourse.\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :pull-requests {}, :causal-order {#uuid \"2129d0b6-8e6d-5917-962a-2dde8dde3e86\" []}, :public false, :branches {\"master\" #{#uuid \"2129d0b6-8e6d-5917-962a-2dde8dde3e86\"}}, :head \"master\", :last-update #inst \"2014-07-14T09:48:49.199-00:00\", :id #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"}}}")
+                "{#uuid \"34f240b3-97fd-575c-8c25-9163a2de6c54\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, \"eve@polyc0l0r.net\" {#uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\" {:description \"topiq discourse.\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :pull-requests {}, :causal-order {#uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\" []}, :public false, :branches {\"master\" #{#uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\"}}, :head \"master\", :last-update #inst \"2014-09-14T17:24:36.692-00:00\", :id #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"}}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), #uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\" {:transactions [[#uuid \"34f240b3-97fd-575c-8c25-9163a2de6c54\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-09-14T17:24:36.692-00:00\", :author \"eve@polyc0l0r.net\"}}")
                (atom {'datascript/Datom datascript/datom-from-reader
-                 'datascript/DB datascript/db-from-reader})))))
+                      'datascript/DB datascript/db-from-reader})))))
+
+  (def hooks (atom {}))
 
   (def peer (client-peer "CLIENT-PEER"
                          store
-                         (comp (partial publish-on-request store)
-                               (partial fetch store))))
+                         (comp (partial hook hooks store)
+                               (partial publish-on-request store)
+                               (partial fetch store)
+                               ensure-hash)))
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
 
@@ -148,8 +154,20 @@
           (str ":" 8080 #_(.getPort uri)))
         "/geschichte/ws")))
 
+
+  (defn login-fn [new-user]
+    (go
+      (swap! stage assoc-in [:config :user] new-user)
+      (<! (s/fork! stage ["eve@polyc0l0r.net"
+                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                          "master"]))
+      (swap! hooks assoc ["eve@polyc0l0r.net"
+                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                          "master"]
+             [[new-user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" "master"]])))
+
   (om/root
-   navbar-view
+   (partial navbar-view login-fn)
    (get-in @stage [:volatile :val-atom])
    {:target (. js/document (getElementById "collapsed-navbar-group"))})
 
@@ -170,7 +188,6 @@
         conn   (d/create-conn schema)]
     (go
       (println (<! (s/create-repo! stage
-                                   "eve@polyc0l0r.net"
                                    "topiq discourse."
                                    @conn
                                    "master")))))

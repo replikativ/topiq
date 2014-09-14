@@ -3,7 +3,8 @@
                                         add-topiq add-argument add-vote]]
             [topiq.plugins :refer [render-content replace-hashtags]]
             [figwheel.client :as fw :include-macros true]
-            [kioo.om :refer [html-content content after set-attr do-> substitute listen prepend append html remove-class add-class]]
+            [kioo.om :refer [html-content content after set-attr do-> substitute
+                             listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
             [dommy.utils :as utils]
             [dommy.core :as dommy]
@@ -60,7 +61,7 @@
 
 
 (deftemplate navbar "templates/tool.html"
-  [owner {:keys [current-user search-text login-user-text search-placeholder]}]
+  [owner {:keys [current-user search-text login-user-text search-placeholder login-fn]}]
   {[:#nav-input-field] (do-> (set-attr :placeholder search-placeholder)
                              (content search-text)
                              (listen :on-change #(handle-text-change % owner :search-text)))
@@ -69,7 +70,8 @@
    [:#login-user-input] (do-> (set-attr :value login-user-text)
                               (listen :on-change #(handle-text-change % owner :login-user-text)))
    [:#login-user-password] (set-attr :disabled true)
-   [:#modal-login-btn] (listen :on-click #(set-navbar-user owner login-user-text))
+   [:#modal-login-btn] (listen :on-click (fn [e] (set-navbar-user owner login-user-text)
+                                           (login-fn login-user-text)))
    [:#register-user-input] (set-attr :disabled true)
    [:#register-user-password] (set-attr :disabled true)
    [:#forgot-user-input] (set-attr :disabled true)})

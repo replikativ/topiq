@@ -12,6 +12,8 @@
             [geschichte.platform :refer [create-http-kit-handler!]]
             [geschichte.p2p.auth :refer [auth]]
             [geschichte.p2p.fetch :refer [fetch]]
+            [geschichte.p2p.hooks :refer [hook]]
+            [geschichte.p2p.hash :refer [ensure-hash]]
             [geschichte.p2p.publish-on-request :refer [publish-on-request]]
             [konserve.store :refer [new-mem-store]]
             [konserve.platform :refer [new-couch-store]]
@@ -24,7 +26,6 @@
             [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
             [com.ashafa.clutch.utils :as utils]
             [com.ashafa.clutch :refer [couch]]
-            #_[postal.core :as postal]
             [clojure.tools.logging :refer [info warn error]]))
 
 
@@ -50,7 +51,7 @@
    (fn [old new] (assoc-in old [:store] new))
    #_(<!! (new-mem-store))
    (<!! (new-couch-store
-             (couch (utils/url (:couchdb-url @state) "topid"))
+             (couch (utils/url (:couchdb-url @state) "topiq"))
              (:tag-table @state))))
   state)
 
@@ -63,6 +64,13 @@
 (defn- auth-fn [users]
   (go (println "AUTH-REQUIRED: " users)
       {}))
+
+(def hooks (atom {[#".*"
+                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                   "master"]
+                  [["eve@polyc0l0r.net"
+                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                    "master"]]}))
 
 (defn create-peer
   "Creates geschichte server peer"
@@ -78,8 +86,10 @@
                               "/geschichte/ws")
                          tag-table)
                         store
-                        (comp (partial publish-on-request store)
-                              (partial fetch store)))))
+                        (comp (partial hook hooks store)
+                              (partial publish-on-request store)
+                              (partial fetch store)
+                              ensure-hash))))
   state)
 
 
