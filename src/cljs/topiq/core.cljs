@@ -14,6 +14,7 @@
             [geschichte.p2p.hooks :refer [hook]]
             [geschichte.p2p.hash :refer [ensure-hash]]
             [geschichte.p2p.publish-on-request :refer [publish-on-request]]
+            [geschichte.p2p.block-detector :refer [block-detector]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
@@ -78,20 +79,21 @@
 
 (defn topiqs-view
   "Builds topiqs list with topiq head and related argument list, resolves conflicts"
-  [app owner]
+  [stage app owner]
   (reify
     om/IInitState
     (init-state [_]
       {:selected-topiq false
        :stage stage})
     om/IRenderState
-    (render-state [this {:keys [selected-topiq] :as state}]
-      (let [val (om/value (get-in app ["eve@polyc0l0r.net"
+    (render-state [this {:keys [selected-topiq stage] :as state}]
+      (let [user (get-in @stage [:config :user])
+            val (om/value (get-in app [user
                                        #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                        "master"]))]
         (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
               (do
-                (s/merge! stage ["eve@polyc0l0r.net"
+                (s/merge! stage [user
                                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                  "master"]
                           (concat (map :id (:commits-a val))
@@ -100,7 +102,7 @@
 
               (= (type val) geschichte.stage/Abort) ;; reapply
               (do
-                (s/transact stage ["eve@polyc0l0r.net"
+                (s/transact stage [user
                                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                    "master"] (:aborted val))
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
@@ -132,10 +134,12 @@
 
   (def peer (client-peer "CLIENT-PEER"
                          store
-                         (comp (partial hook hooks store)
-                               (partial publish-on-request store)
-                               (partial fetch store)
-                               ensure-hash)))
+                         (comp  (partial block-detector :client-core)
+                                (partial hook hooks store)
+                                (partial publish-on-request store)
+                                (partial fetch store)
+                                ensure-hash
+                                (partial block-detector :client-surface))))
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
 
@@ -172,11 +176,13 @@
    {:target (. js/document (getElementById "collapsed-navbar-group"))})
 
   (om/root
-   topiqs-view
+   (partial topiqs-view stage)
    (get-in @stage [:volatile :val-atom])
    {:target (. js/document (getElementById "topiq-container"))}))
 
-
+;; multiple quick votes -> server db is not updated anymore
+;; conflict with dangling commit possible?
+;; quick voting commits corrupt metadata?
 
 (comment
   ;; recreate database

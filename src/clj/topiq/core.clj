@@ -15,8 +15,10 @@
             [geschichte.p2p.hooks :refer [hook]]
             [geschichte.p2p.hash :refer [ensure-hash]]
             [geschichte.p2p.publish-on-request :refer [publish-on-request]]
+            [geschichte.p2p.block-detector :refer [block-detector]]
             [konserve.store :refer [new-mem-store]]
             [konserve.platform :refer [new-couch-store]]
+            [konserve.protocols :refer [-get-in]]
             [compojure.handler :refer [site api]]
             [org.httpkit.server :refer [with-channel on-close on-receive run-server send!]]
             [ring.util.response :as resp]
@@ -86,7 +88,8 @@
                               "/geschichte/ws")
                          tag-table)
                         store
-                        (comp (partial hook hooks store)
+                        (comp (partial block-detector :server)
+                              (partial hook hooks store)
                               (partial publish-on-request store)
                               (partial fetch store)
                               ensure-hash))))
@@ -178,6 +181,4 @@
 
   (def server (start-server (:port @server-state)))
 
-  (server)
-
-)
+  (server))
