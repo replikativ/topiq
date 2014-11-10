@@ -164,14 +164,15 @@
 
 (defn add-vote [stage topiq-id voter updown]
   (let [ts (js/Date.)]
-    (go (<! (s/transact stage
-                        [voter
-                         #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                         "master"]
-                        [{:db/id (uuid [voter topiq-id])
-                          :topiq topiq-id
-                          :voter voter
-                          :updown updown
-                          :ts ts}]
-                        '(fn [old params] (d/db-with old params))))
-        (<! (s/commit! stage {voter {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
+    (when-not (= "Not logged in" voter)
+      (go (<! (s/transact stage
+                          [voter
+                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                           "master"]
+                          [{:db/id (uuid [voter topiq-id])
+                            :topiq topiq-id
+                            :voter voter
+                            :updown updown
+                            :ts ts}]
+                          '(fn [old params] (d/db-with old params))))
+          (<! (s/commit! stage {voter {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}}))))))

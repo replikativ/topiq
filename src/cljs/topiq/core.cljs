@@ -11,7 +11,7 @@
             [konserve.store :refer [new-mem-store]]
             [geschichte.p2p.auth :refer [auth]]
             [geschichte.p2p.fetch :refer [fetch]]
-            [geschichte.p2p.hooks :refer [hook]]
+            [geschichte.p2p.hooks :refer [hook default-integrity-fn]]
             [geschichte.p2p.hash :refer [ensure-hash]]
             [geschichte.p2p.publish-on-request :refer [publish-on-request]]
             [geschichte.p2p.block-detector :refer [block-detector]]
@@ -168,7 +168,8 @@
       (swap! hooks assoc ["eve@polyc0l0r.net"
                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                           "master"]
-             [[new-user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" "master"]])))
+             [[new-user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" "master"]
+              default-integrity-fn true])))
 
   (om/root
    (partial navbar-view login-fn)
