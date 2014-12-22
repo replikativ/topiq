@@ -23,6 +23,8 @@
                  [com.cemerick/friend "0.2.1"]
                  [enlive "1.1.5"]
                  [compojure "1.1.9"]
+                 ;; for geschichte debugging
+                 [aysylu/loom "0.5.0"]
 
                  [domina "1.0.2"]
                  [prismatic/dommy "0.1.3"]
@@ -32,9 +34,11 @@
                  [figwheel "0.1.3-SNAPSHOT"]
                  [com.facebook/react "0.11.1"]
                  [net.polyc0l0r/geschichte "0.1.0-SNAPSHOT"]
-                 [markdown-clj "0.9.47"]
+                 [markdown-clj "0.9.55"]
 
                  [weasel "0.4.0-SNAPSHOT"]]
+
+  :profiles {:dev {:dependencies [[com.datomic/datomic-free "0.9.4899"]]}}
 
   :main topiq.core
 
@@ -65,4 +69,5 @@
     {:id "prod"
      :source-paths ["src/cljs"]
      :compiler {:output-to "resources/public/js/main.js"
-                :optimizations :simple}}]})
+                :optimizations :none
+                :source-map true}}]})

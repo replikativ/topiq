@@ -181,10 +181,6 @@
    (get-in @stage [:volatile :val-atom])
    {:target (. js/document (getElementById "topiq-container"))}))
 
-;; multiple quick votes -> server db is not updated anymore
-;; conflict with dangling commit possible?
-;; quick voting commits corrupt metadata?
-
 (comment
   ;; recreate database
   (let [schema {:up-votes {:db/cardinality :db.cardinality/many}
