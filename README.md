@@ -16,7 +16,7 @@ Test instance at <https://topiq.es>.
 
 ## License
 
-Copyright © 2014 Konrad Kühne, Christian Weilbach
+Copyright © 2014-2015 Konrad Kühne & Christian Weilbach
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
