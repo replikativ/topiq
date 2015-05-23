@@ -28,7 +28,9 @@
             [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
             [com.ashafa.clutch.utils :as utils]
             [com.ashafa.clutch :refer [couch]]
-            [clojure.tools.logging :refer [info warn error]]))
+            [clojure.tools.logging :refer [info warn error]]
+
+            [datomic.api :as d]))
 
 
 (def server-state (atom nil))
