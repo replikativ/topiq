@@ -12,7 +12,7 @@
             [geschichte.p2p.auth :refer [auth]]
             [geschichte.p2p.fetch :refer [fetch]]
             [geschichte.p2p.hooks :refer [hook default-integrity-fn]]
-            [geschichte.p2p.hash :refer [ensure-hash]]
+            #_[geschichte.p2p.hash :refer [ensure-hash]]
             [geschichte.p2p.publish-on-request :refer [publish-on-request]]
             [geschichte.p2p.block-detector :refer [block-detector]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
@@ -138,7 +138,7 @@
                                 (partial hook hooks store)
                                 (partial publish-on-request store)
                                 (partial fetch store)
-                                ensure-hash
+                                #_ensure-hash
                                 (partial block-detector :client-surface))))
 
   (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
