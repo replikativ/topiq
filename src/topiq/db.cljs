@@ -1,8 +1,8 @@
 (ns topiq.db
-  (:require [datascript :as d]
+  (:require [datascript.core :as d]
             [om.core :as om :include-macros true] ;; TODO avoid in db?
             [hasch.core :refer [uuid]]
-            [geschichte.stage :as s]
+            [replikativ.crdt.cdvcs.stage :as s]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 

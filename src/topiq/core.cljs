@@ -1,20 +1,18 @@
 (ns topiq.core
   (:require [topiq.view :refer [topiqs navbar topiq-arguments]]
             [clojure.data :refer [diff]]
-            [domina :as dom]
-            [figwheel.client :as figw :include-macros true]
-            [weasel.repl :as ws-repl]
             [hasch.core :refer [uuid]]
-            [datascript :as d]
-            [geschichte.stage :as s]
-            [geschichte.sync :refer [client-peer]]
-            [konserve.store :refer [new-mem-store]]
-            [geschichte.p2p.auth :refer [auth]]
-            [geschichte.p2p.fetch :refer [fetch]]
-            [geschichte.p2p.hooks :refer [hook default-integrity-fn]]
-            #_[geschichte.p2p.hash :refer [ensure-hash]]
-            [geschichte.p2p.publish-on-request :refer [publish-on-request]]
-            [geschichte.p2p.block-detector :refer [block-detector]]
+            [datascript.core :as d]
+            [replikativ.stage :as s]
+            [replikativ.crdt.cdvcs.realize]
+            [replikativ.crdt.cdvcs.stage :as sc]
+            [replikativ.core :refer [client-peer]]
+            [konserve.memory :refer [new-mem-store]]
+            [replikativ.p2p.auth :refer [auth]]
+            [replikativ.p2p.fetch :refer [fetch]]
+            [replikativ.p2p.hooks :refer [hook default-integrity-fn]]
+            #_[replikativ.p2p.hash :refer [ensure-hash]]
+            [replikativ.p2p.block-detector :refer [block-detector]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
@@ -23,6 +21,14 @@
             [om.dom :as omdom])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
+(def err-ch (chan))
+
+(go-loop [e (<! err-ch)]
+  (when e
+    (println "TOPIQ UNCAUGHT" e)
+    (recur (<! err-ch))))
+
+
 
 (enable-console-print!)
 
@@ -30,33 +36,9 @@
 
 (def ssl? (= (.getScheme uri) "https"))
 
-;; fire up repl
-#_(do
-    (ns weasel.startup)
-    (require 'weasel.repl.websocket)
-    (cemerick.piggieback/cljs-repl
-        :repl-env (weasel.repl.websocket/repl-env
-                   :ip "0.0.0.0" :port 17782)))
-
-
-;; weasel websocket
-(if (= "localhost" (.getDomain uri))
-  (do
-    #_(figw/watch-and-reload
-     ;; :websocket-url "ws://localhost:3449/figwheel-ws" default
-     :jsload-callback (fn [] (print "reloaded")))
-    (ws-repl/connect "ws://localhost:17782" :verbose true)))
-
 
 (def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
               '(fn [old params] (d/db-with old params)) (fn [old params] (d/db-with old params))})
-
-
-
-; we can do this runtime wide here, since we only use this datascript version
-(read/register-tag-parser! 'datascript/DB datascript/db-from-reader)
-(read/register-tag-parser! 'datascript/Datom datascript/datom-from-reader)
-
 
 
 (defn navbar-view
@@ -91,20 +73,20 @@
             val (om/value (get-in app [user
                                        #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                                        "master"]))]
-        (cond (= (type val) geschichte.stage/Conflict) ;; TODO implement with protocol dispatch
+        (cond (= (type val) replikativ.crdt.cdvcs.realize/Conflict) ;; TODO implement with protocol dispatch
               (do
-                (s/merge! stage [user
-                                 #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                                 "master"]
-                          (concat (map :id (:commits-a val))
-                                  (map :id (:commits-b val))))
+                (sc/merge! stage [user
+                                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                                  "master"]
+                           (concat (map :id (:commits-a val))
+                                   (map :id (:commits-b val))))
                 (omdom/div nil (str "Resolving conflicts... please wait. " (pr-str val))))
 
-              (= (type val) geschichte.stage/Abort) ;; reapply
+              (= (type val) replikativ.crdt.cdvcs.stage/Abort) ;; reapply
               (do
-                (s/transact stage [user
-                                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                                   "master"] (:aborted val))
+                (sc/transact stage [user
+                                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                                    "master"] (:aborted val))
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
               :else
               (if selected-topiq
@@ -112,7 +94,7 @@
                 (topiqs app owner)))))))
 
 
-(def trusted-hosts (atom #{:geschichte.stage/stage (.getDomain uri)}))
+(def trusted-hosts (atom #{:replikativ.stage/stage (.getDomain uri)}))
 
 
 (defn- auth-fn [users]
@@ -126,24 +108,23 @@
   (def store
     (<! (new-mem-store
          (atom (read-string
-                "{#uuid \"34f240b3-97fd-575c-8c25-9163a2de6c54\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, \"eve@polyc0l0r.net\" {#uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\" {:description \"topiq discourse.\", :schema {:type \"http://github.com/ghubber/geschichte\", :version 1}, :pull-requests {}, :causal-order {#uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\" []}, :public false, :branches {\"master\" #{#uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\"}}, :head \"master\", :last-update #inst \"2014-09-14T17:24:36.692-00:00\", :id #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"}}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), #uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\" {:transactions [[#uuid \"34f240b3-97fd-575c-8c25-9163a2de6c54\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-09-14T17:24:36.692-00:00\", :author \"eve@polyc0l0r.net\"}}")
-               (atom {'datascript/Datom datascript/datom-from-reader
-                      'datascript/DB datascript/db-from-reader})))))
+                "{#uuid \"34f240b3-97fd-575c-8c25-9163a2de6c54\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, \"eve@polyc0l0r.net\" {#uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\" {:description \"topiq discourse.\", :schema {:type \"http://github.com/ghubber/replikativ\", :version 1}, :pull-requests {}, :causal-order {#uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\" []}, :public false, :branches {\"master\" #{#uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\"}}, :head \"master\", :last-update #inst \"2014-09-14T17:24:36.692-00:00\", :id #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"}}, #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\" (fn replace [old params] params), #uuid \"061d8a1e-b0a8-55c4-8736-ed0e39f30b9c\" {:transactions [[#uuid \"34f240b3-97fd-575c-8c25-9163a2de6c54\" #uuid \"123ed64b-1e25-59fc-8c5b-038636ae6c3d\"]], :parents [], :ts #inst \"2014-09-14T17:24:36.692-00:00\", :author \"eve@polyc0l0r.net\"}}")
+               (atom {})))))
 
   (def hooks (atom {}))
 
   (def peer (client-peer "CLIENT-PEER"
                          store
+                         err-ch
                          (comp  (partial block-detector :client-core)
                                 (partial hook hooks store)
-                                (partial publish-on-request store)
                                 (partial fetch store)
                                 #_ensure-hash
                                 (partial block-detector :client-surface))))
 
-  (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer eval-fn)))
+  (def stage (<! (s/create-stage! "eve@polyc0l0r.net" peer err-ch eval-fn)))
 
-  (<! (s/subscribe-repos! stage
+  (<! (s/subscribe-crdts! stage
                           {"eve@polyc0l0r.net"
                            {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                             #{"master"}}}))
@@ -156,15 +137,15 @@
         (.getDomain uri)
         (when (= (.getDomain uri) "localhost")
           (str ":" 8080 #_(.getPort uri)))
-        "/geschichte/ws")))
+        "/replikativ/ws")))
 
 
   (defn login-fn [new-user]
     (go
       (swap! stage assoc-in [:config :user] new-user)
-      (<! (s/fork! stage ["eve@polyc0l0r.net"
-                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                          "master"]))
+      (<! (sc/fork! stage ["eve@polyc0l0r.net"
+                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                           "master"]))
       (swap! hooks assoc ["eve@polyc0l0r.net"
                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                           "master"]
@@ -190,11 +171,11 @@
                 :hashtags {:db/cardinality :db.cardinality/many}}
         conn   (d/create-conn schema)]
     (go
-      (println (<! (s/create-repo! stage
-                                   "topiq discourse."
-                                   @conn
-                                   "master")))))
+      (println (<! (sc/create-repo! stage
+                                    "topiq discourse."
+                                    @conn
+                                    "master")))))
 
   (-> @stage :volatile :peer deref :volatile :store :state deref)
 
-)
+  )

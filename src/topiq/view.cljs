@@ -2,21 +2,14 @@
   (:require [topiq.db :refer [get-topiq get-topiqs get-arguments vote-count
                                         add-topiq add-argument add-vote]]
             [topiq.plugins :refer [render-content replace-hashtags]]
-            [figwheel.client :as fw :include-macros true]
             [kioo.om :refer [html-content content after set-attr do-> substitute
                              listen prepend append html remove-class add-class]]
             [kioo.core :refer [handle-wrapper]]
-            [dommy.utils :as utils]
-            [dommy.core :as dommy]
             [om.core :as om :include-macros true]
             [domina :as dom])
-  (:require-macros [kioo.om :refer [defsnippet deftemplate]]
-                   [dommy.macros :refer [node sel sel1]]))
+  (:require-macros [kioo.om :refer [defsnippet deftemplate]]))
 
 (enable-console-print!)
-
-
-(println "Resistance is futile!")
 
 
 (defn compute-time-diff
@@ -46,7 +39,7 @@
 
 
 (defn commit [owner]
-  (let [username (.-innerHTML (sel1 :#nav-current-user))
+  (let [username (.-innerHTML (dom/by-id "#nav-current-user"))
         stage (om/get-state owner :stage)
         selected-topiq (om/get-state owner :selected-topiq)]
     (if (= "Not logged in" username)
@@ -114,7 +107,7 @@
    [:.topiq-vote-group] (substitute (topiq-vote-group (om/get-state owner :stage)
                                                       app
                                                       topiq
-                                                      (.-innerHTML (sel1 :#nav-current-user))))})
+                                                      (.-innerHTML (dom/by-id "#nav-current-user"))))})
 
 ;; WARNING: pure arguments name clashes with compiler
 (deftemplate topiq-arguments "templates/argument.html"

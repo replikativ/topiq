@@ -5,20 +5,16 @@
             [clojure.java.io :as io]
             [compojure.route :refer [resources]]
             [compojure.core :refer [GET POST defroutes]]
-            [geschichte.repo :as repo]
-            [geschichte.stage :as s]
-            [geschichte.meta :refer [update]]
-            [geschichte.sync :refer [server-peer client-peer]]
-            [geschichte.platform :refer [create-http-kit-handler!]]
-            [geschichte.p2p.auth :refer [auth]]
-            [geschichte.p2p.fetch :refer [fetch]]
-            [geschichte.p2p.hooks :refer [hook]]
-            [geschichte.p2p.hash :refer [ensure-hash]]
-            [geschichte.p2p.publish-on-request :refer [publish-on-request]]
-            [geschichte.p2p.block-detector :refer [block-detector]]
-            [konserve.store :refer [new-mem-store]]
-            [konserve.platform :refer [new-couch-store]]
-            [konserve.protocols :refer [-get-in]]
+            [replikativ.crdt.cdvcs.repo :as repo]
+            [replikativ.stage :as s]
+            [replikativ.core :refer [server-peer client-peer]]
+            [replikativ.platform :refer [create-http-kit-handler!]]
+            [replikativ.p2p.fetch :refer [fetch]]
+            [replikativ.p2p.hooks :refer [hook]]
+            [replikativ.p2p.hash :refer [ensure-hash]]
+            [replikativ.p2p.block-detector :refer [block-detector]]
+            [konserve.memory :refer [new-mem-store]]
+            [konserve.filestore :refer [new-fs-store]]
             [compojure.handler :refer [site api]]
             [org.httpkit.server :refer [with-channel on-close on-receive run-server send!]]
             [ring.util.response :as resp]
@@ -26,8 +22,6 @@
             [cemerick.friend.workflows :as workflows]
             [cemerick.friend.credentials :as creds]
             [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
-            [com.ashafa.clutch.utils :as utils]
-            [com.ashafa.clutch :refer [couch]]
             [clojure.tools.logging :refer [info warn error]]))
 
 
@@ -48,13 +42,7 @@
 (defn create-store
   "Creates a konserve store"
   [state]
-  (swap!
-   state
-   (fn [old new] (assoc-in old [:store] new))
-   #_(<!! (new-mem-store))
-   (<!! (new-couch-store
-             (couch (utils/url (:couchdb-url @state) "topiq"))
-             (:tag-table @state))))
+  (swap! state assoc :store (<!! (new-fs-store "store")))
   state)
 
 (defn- cred-fn [creds]
@@ -74,8 +62,15 @@
                     #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                     "master"]]}))
 
+(def err-ch (chan))
+
+(go-loop [e (<! err-ch)]
+  (when e
+    (println "TOPIQ UNCAUGHT" e)
+    (recur (<! err-ch))))
+
 (defn create-peer
-  "Creates geschichte server peer"
+  "Creates replikativ server peer"
   [state]
   (let [{:keys [proto host port build tag-table store trusted-hosts]} @state]
     (swap! state
@@ -85,12 +80,13 @@
                               "://" host
                               (when (= :dev build)
                                 (str ":" port))
-                              "/geschichte/ws")
-                         tag-table)
+                              "/replikativ/ws")
+                         err-ch)
+                        "topiq dev server"
                         store
+                        err-ch
                         (comp (partial block-detector :server)
                               (partial hook hooks store)
-                              (partial publish-on-request store)
                               (partial fetch store)
                               ensure-hash))))
   state)
@@ -136,7 +132,7 @@
 
   (GET "/bookmark/ws" [] bookmark-handler) ;; websocket handling
 
-  (GET "/geschichte/ws" [] (-> @server-state :peer deref :volatile :handler))
+  (GET "/replikativ/ws" [] (-> @server-state :peer deref :volatile :handler))
 
   (GET "/*" [] (if (= (:build @server-state) :prod)
                  (static-page)
@@ -146,7 +142,7 @@
 (defn read-config [state path]
   (let [config (-> path slurp read-string
                    (update-in [:couchdb-url] eval) ;; maybe something better but I don't want to deal withj system vars in here
-                   (assoc :tag-table
+                   #_(assoc :tag-table
                      (atom {'datascript.Datom
                             (fn [val] (info "DATASCRIPT-DATOM:" val)
                               (konserve.literals.TaggedLiteral. 'datascript.Datom val))})))]
@@ -176,6 +172,7 @@
 
 
 (comment
+  (read-config (atom {}) "resources/server-config.edn")
 
   (init server-state "resources/server-config.edn")
 
