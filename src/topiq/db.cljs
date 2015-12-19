@@ -33,45 +33,46 @@
 
 
 (defn get-topiqs [db]
-  (let [qr (map (partial zipmap [:id :title :detail-url :detail-text :author :ts])
-                (d/q '[:find ?p ?title ?durl ?dtext ?author ?ts
+  (let [qr (map (partial zipmap [:id :title #_:detail-url :detail-text :author :ts])
+                (d/q '[:find ?p ?title #_?durl ?dtext ?author ?ts
                        :where
                        [?p :author ?author]
-                       [?p :detail-url ?durl]
+                       #_[?p :detail-url ?durl]
                        [?p :detail-text ?dtext]
                        [?p :title ?title]
                        [?p :ts ?ts]]
                      db))]
+    (println "QR" (map (partial zipmap [:id :title #_:detail-url :detail-text :author :ts])
+                (d/q '[:find ?p ?title #_?durl ?dtext ?author ?ts
+                       :where
+                       [?p :author ?author]
+                       #_[?p :detail-url ?durl]
+                       [?p :detail-text ?dtext]
+                       [?p :title ?title]
+                       [?p :ts ?ts]]
+                     db)))
     (sort-by
      (fn [t] (- (rank t)))
      (map (fn [{:keys [id] :as p}]
             (.log js/console "RANK" (rank (assoc p :vote-count (vote-count db id))))
             (assoc p
-              :hashtags (first (first (d/q '[:find (distinct ?hashtag)
-                                             :in $ ?pid
-                                             :where
-                                             [?h :post ?pid]
-                                             [?h :tag ?hashtag]]
-                                           db
-                                           id)))
-              :vote-count (vote-count db id)))
+                   :hashtags (first (first (d/q '[:find (distinct ?hashtag)
+                                                  :in $ ?pid
+                                                  :where
+                                                  [?h :post ?pid]
+                                                  [?h :tag ?hashtag]]
+                                                db
+                                                id)))
+                   :vote-count (vote-count db id)))
           qr))))
 
 
-(defn get-topiq [id stage]
-  (let [db (om/value
-            (get-in stage ["eve@polyc0l0r.net"
-                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                           "master"]))]
-    (d/entity db id)))
+(defn get-topiq [id db]
+  (d/entity db id))
 
 
-(defn get-arguments [post-id stage]
-  (let [db (om/value
-            (get-in stage ["eve@polyc0l0r.net"
-                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                           "master"]))
-        query '{:find [?p ?author ?content ?ts]
+(defn get-arguments [post-id db]
+  (let [query '{:find [?p ?author ?content ?ts]
                 :in [$ ?pid]
                 :where [[?p :post ?pid]
                         [?p :content ?content]
@@ -111,17 +112,18 @@
                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
                         '(fn [old params] (d/db-with old params))
-                        (concat [{:db/id post-id
-                                  :title (str (apply str (take 160 text)) "...")
-                                  :detail-url (first urls)
-                                  :detail-text  text
-                                  :author author
-                                  :ts ts}]
-                                (map (fn [t] {:db/id (uuid)
+                        (concat [(merge {:db/unique-identity [:item/id post-id]
+                                         :title (str (apply str (take 160 text)) "...")
+                                         :detail-text  text
+                                         :author author
+                                         :ts ts}
+                                        (when-let [u (first urls)]
+                                          {:detail-url u}))]
+                                (map (fn [t] {:db/unique-identity [:item/id (uuid)]
                                              :post post-id
                                              :tag (keyword t)
                                              :ts ts}) hash-tags)
-                                (map (fn [u] {:db/id (uuid)
+                                (map (fn [u] {:db/unique-identity [:item/id (uuid)]
                                              :post post-id
                                              :url u
                                              :ts ts}) urls))))
@@ -141,18 +143,18 @@
                          "master"]
                         '(fn [old params] (d/db-with old params))
                         (concat
-                         [{:db/id argument-id
+                         [{:db/unique-identity [:item/id argument-id]
                            :post post-id
                            :content text
                            :author author
                            :ts ts}]
                          (map (fn [t]
-                                {:db/id (uuid)
+                                {:db/unique-identity [:item/id (uuid)]
                                  :argument argument-id
                                  :tag (keyword t)
                                  :ts ts})
                               hash-tags)
-                         (map (fn [u] {:db/id (uuid)
+                         (map (fn [u] {:db/unique-identity [:item/id (uuid)]
                                       :post post-id
                                       :url u
                                       :ts ts}) urls))))
@@ -167,7 +169,7 @@
                            #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                            "master"]
                           '(fn [old params] (d/db-with old params))
-                          [{:db/id (uuid [voter topiq-id])
+                          [{:db/unique-identity [:item/id (uuid [voter topiq-id])]
                             :topiq topiq-id
                             :voter voter
                             :updown updown

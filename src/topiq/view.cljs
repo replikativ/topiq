@@ -107,13 +107,13 @@
    [:.topiq-vote-group] (substitute (topiq-vote-group (om/get-state owner :stage)
                                                       app
                                                       topiq
-                                                      (.-innerHTML (dom/by-id "#nav-current-user"))))})
+                                                      (.-innerHTML (dom/by-id "nav-current-user"))))})
 
 ;; WARNING: pure arguments name clashes with compiler
 (deftemplate topiq-arguments "templates/argument.html"
-  [app owner]
+  [app owner db]
   {[:.topiq-text] (html-content
-                   (let [topiq (get-topiq (om/get-state owner :selected-topiq) app)
+                   (let [topiq (get-topiq (om/get-state owner :selected-topiq) @db)
                          text (replace-hashtags (:title topiq))]
                      (if (:detail-url topiq)
                        (clojure.string/replace
@@ -121,10 +121,10 @@
                         (re-pattern (:detail-url topiq))
                         (str " <a href='" (:detail-url topiq) "' target='_blank'> " (:detail-url topiq) " </a> " ))
                        text)))
-   [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
-   [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) app))))
+   [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) @db)))
+   [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) @db))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
-   [:.arguments] (content (map topiq-argument (get-arguments (om/get-state owner :selected-topiq) app)))
+   [:.arguments] (content (map topiq-argument (get-arguments (om/get-state owner :selected-topiq) @db)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)
                                                   (when (= (.-which %) 13)
@@ -135,7 +135,9 @@
 
 (deftemplate topiqs "templates/topiqs.html"
   [app owner]
-  {[:.list-group] (content (map #(topiq % app owner) (get-topiqs app)))
+  {[:.list-group] (content (map #(topiq % app owner) (let [ts (get-topiqs app)]
+                                                       (println "topiqs" ts)
+                                                       ts)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)
                                                   (when (= (.-which %) 13)

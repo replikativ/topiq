@@ -56,6 +56,7 @@
        owner
        state))))
 
+(def val-atom (atom {}))
 
 (defn topiqs-view
   "Builds topiqs list with topiq head and related argument list, resolves conflicts"
@@ -87,8 +88,10 @@
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
               :else
               (if selected-topiq
-                (topiq-arguments app owner)
-                (topiqs app owner)))))))
+                (topiq-arguments val owner val-atom)
+                (topiqs val owner)))))))
+
+
 
 
 (def trusted-hosts (atom #{:replikativ.stage/stage (.getDomain uri)}))
@@ -162,14 +165,16 @@
    nil
    {:target (. js/document (getElementById "collapsed-navbar-group"))})
 
-  (def val-atom (atom nil))
 
   (add-watch stage :val-watcher
-             (fn [k r o n] (go (let [nval (<! (branch-value store
+             (fn [k r o n] (go
+                            (when (get-in n ["foo@bar.com"
+                                             #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
+                              (let [nval (<! (branch-value store
                                                            eval-fn
-                                                           (get-in n ["eve@polyc0l0r.net"
+                                                           (get-in n ["foo@bar.com"
                                                                       #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]) "master"))]
-                                (reset! val-atom nval)))))
+                                (reset! val-atom nval))))))
 
 
   (om/root
