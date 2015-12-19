@@ -32,12 +32,8 @@
                                  (* 7 24 3600 1000)))))
 
 
-(defn get-topiqs [stage]
-  (let [db (om/value
-            (get-in stage ["eve@polyc0l0r.net"
-                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                           "master"]))
-        qr (map (partial zipmap [:id :title :detail-url :detail-text :author :ts])
+(defn get-topiqs [db]
+  (let [qr (map (partial zipmap [:id :title :detail-url :detail-text :author :ts])
                 (d/q '[:find ?p ?title ?durl ?dtext ?author ?ts
                        :where
                        [?p :author ?author]
@@ -103,6 +99,7 @@
 (defn add-topiq
   "Transacts a new topiq to the stage"
   [stage author text]
+  (println "ADDING TOPIQ" author text)
   (let [post-id (uuid)
         ts (js/Date.)
         hash-tags (extract-hashtags text)
@@ -113,6 +110,7 @@
                         [author
                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
+                        '(fn [old params] (d/db-with old params))
                         (concat [{:db/id post-id
                                   :title (str (apply str (take 160 text)) "...")
                                   :detail-url (first urls)
@@ -126,8 +124,7 @@
                                 (map (fn [u] {:db/id (uuid)
                                              :post post-id
                                              :url u
-                                             :ts ts}) urls))
-                        '(fn [old params] (d/db-with old params))))
+                                             :ts ts}) urls))))
         (<! (s/commit! stage {author {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
 
 
@@ -142,6 +139,7 @@
                         [author
                          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                          "master"]
+                        '(fn [old params] (d/db-with old params))
                         (concat
                          [{:db/id argument-id
                            :post post-id
@@ -157,8 +155,7 @@
                          (map (fn [u] {:db/id (uuid)
                                       :post post-id
                                       :url u
-                                      :ts ts}) urls))
-                        '(fn [old params] (d/db-with old params))))
+                                      :ts ts}) urls))))
         (<! (s/commit! stage {author {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
 
 
@@ -169,10 +166,10 @@
                           [voter
                            #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                            "master"]
+                          '(fn [old params] (d/db-with old params))
                           [{:db/id (uuid [voter topiq-id])
                             :topiq topiq-id
                             :voter voter
                             :updown updown
-                            :ts ts}]
-                          '(fn [old params] (d/db-with old params))))
+                            :ts ts}]))
           (<! (s/commit! stage {voter {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}}))))))

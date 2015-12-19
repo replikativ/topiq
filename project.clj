@@ -27,17 +27,17 @@
 
                  [domina "1.0.3"]
                  [datascript "0.13.3"]
+                 #_[com.facebook/react "0.12.2.4"]
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
-                 [com.facebook/react "0.12.2.4"]
-                 [io.replikativ/replikativ "0.1.0-beta6"]
+                 [io.replikativ/replikativ "0.1.0-SNAPSHOT"]
                  [markdown-clj "0.9.82"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
                    :figwheel {:nrepl-port 7888
                               :nrepl-middleware ["cider.nrepl/cider-middleware"
                                                  "cemerick.piggieback/wrap-cljs-repl"]}
-                   :plugins [[lein-figwheel "0.4.1"]]}}
+                   :plugins [[lein-figwheel "0.5.0-2"]]}}
 
   :plugins [[lein-cljsbuild "1.1.1"]]
 
@@ -50,22 +50,25 @@
              :port 3449
              :css-dirs ["resources/public/css"]}
 
+  :clean-targets ^{:protect false} ["target" "resources/public/js"]
+
   :cljsbuild
   {:builds
    [{:id "cljs_repl"
-     :source-paths ["src"]
+     :source-paths ["src/"]
      :figwheel true
      :compiler
      {:main topiq.core
       :asset-path "js/out"
-      :output-to "resources/public/js/compiled/main.js"
-      :output-dir "resources/public/js/compiled/out"
+      :output-to "resources/public/js/main.js"
+      :output-dir "resources/public/js/out"
       :optimizations :none
       :pretty-print true}}
     {:id "dev"
      :source-paths ["src"]
      :compiler
-     {:output-to "resources/public/js/main.js"
+     {:main topiq.core
+      :output-to "resources/public/js/main.js"
       :optimizations :simple
       :pretty-print true}}]}
 

@@ -39,7 +39,7 @@
 
 
 (defn commit [owner]
-  (let [username (.-innerHTML (dom/by-id "#nav-current-user"))
+  (let [username (.-innerHTML (dom/by-id "nav-current-user"))
         stage (om/get-state owner :stage)
         selected-topiq (om/get-state owner :selected-topiq)]
     (if (= "Not logged in" username)
