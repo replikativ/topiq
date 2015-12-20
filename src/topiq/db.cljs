@@ -42,15 +42,6 @@
                        [?p :title ?title]
                        [?p :ts ?ts]]
                      db))]
-    (println "QR" (map (partial zipmap [:id :title #_:detail-url :detail-text :author :ts])
-                (d/q '[:find ?p ?title #_?durl ?dtext ?author ?ts
-                       :where
-                       [?p :author ?author]
-                       #_[?p :detail-url ?durl]
-                       [?p :detail-text ?dtext]
-                       [?p :title ?title]
-                       [?p :ts ?ts]]
-                     db)))
     (sort-by
      (fn [t] (- (rank t)))
      (map (fn [{:keys [id] :as p}]
@@ -100,7 +91,6 @@
 (defn add-topiq
   "Transacts a new topiq to the stage"
   [stage author text]
-  (println "ADDING TOPIQ" author text)
   (let [post-id (uuid)
         ts (js/Date.)
         hash-tags (extract-hashtags text)

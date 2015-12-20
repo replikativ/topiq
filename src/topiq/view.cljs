@@ -136,7 +136,7 @@
 (deftemplate topiqs "templates/topiqs.html"
   [app owner]
   {[:.list-group] (content (map #(topiq % app owner) (let [ts (get-topiqs app)]
-                                                       (println "topiqs" ts)
+                                                       #_(println "topiqs" ts)
                                                        ts)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)

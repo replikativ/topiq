@@ -27,7 +27,6 @@
 
                  [domina "1.0.3"]
                  [datascript "0.13.3"]
-                 #_[com.facebook/react "0.12.2.4"]
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/replikativ "0.1.0-SNAPSHOT"]

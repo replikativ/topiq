@@ -13,6 +13,7 @@
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.p2p.hash :refer [ensure-hash]]
             [replikativ.p2p.block-detector :refer [block-detector]]
+            [replikativ.p2p.log :refer [logger]]
             [konserve.memory :refer [new-mem-store]]
             [konserve.filestore :refer [new-fs-store]]
             [compojure.handler :refer [site api]]
@@ -42,11 +43,11 @@
 (defn create-store
   "Creates a konserve store"
   [state]
-  (swap! state assoc :store (<!! (new-fs-store "store")))
+  (swap! state assoc :store (<!! (new-mem-store) #_(new-fs-store "store")))
   state)
 
 (defn- cred-fn [creds]
-  (creds/bcrypt-credential-fn {"eve@polyc0l0r.net" {:username "eve@polyc0l0r.net"
+  (creds/bcrypt-credential-fn {"eve@topiq.es" {:username "eve@topiq.es"
                                                     :password (creds/hash-bcrypt "lisp")
                                                     :roles #{::user}}}
                               creds))
@@ -58,7 +59,7 @@
 (def hooks (atom {[#".*"
                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                    "master"]
-                  [["eve@polyc0l0r.net"
+                  [["eve@topiq.es"
                     #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                     "master"]]}))
 
@@ -68,6 +69,8 @@
   (when e
     (println "TOPIQ UNCAUGHT" e)
     (recur (<! err-ch))))
+
+(def log-atom (atom {}))
 
 (defn create-peer
   "Creates replikativ server peer"
@@ -86,9 +89,13 @@
                         store
                         err-ch
                         (comp (partial block-detector :server)
+                              (partial logger log-atom :after-hooks)
                               (partial hook hooks store)
-                              (partial fetch store)
-                              ensure-hash))))
+                              (partial logger log-atom :after-fetch)
+                              (partial fetch store err-ch)
+                              (partial logger log-atom :after-hash)
+                              ensure-hash
+                              ))))
   state)
 
 
@@ -184,11 +191,11 @@
                     '(fn [old params] (d/db-with old params)) (fn [old params] (conj old params))})
 
   (count (<!! (s/commit-value (:store @server-state) commit-eval
-                              (:causal-order (<!! (-get-in (:store @server-state) ["eve@polyc0l0r.net" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))
+                              (:causal-order (<!! (-get-in (:store @server-state) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))
                               #uuid "05b162ca-b6a6-5106-838f-00e30a1a5b9b")))
 
 
-  (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["eve@polyc0l0r.net" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
+  (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
 
   (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
 
