@@ -9,11 +9,12 @@
             [replikativ.core :refer [client-peer]]
             [konserve.memory :refer [new-mem-store]]
             [konserve.core :as k]
+            [replikativ.protocols :refer [-downstream]]
             [replikativ.p2p.auth :refer [auth]]
             [replikativ.p2p.fetch :refer [fetch]]
             [replikativ.p2p.hooks :refer [hook default-integrity-fn]]
             [replikativ.p2p.hash :refer [ensure-hash]]
-            [replikativ.p2p.block-detector :refer [block-detector]]
+            [kabel.middleware.block-detector :refer [block-detector]]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
             [cljs.reader :refer [read-string] :as read]
             [kioo.om :refer [content set-attr do-> substitute listen]]
@@ -28,7 +29,7 @@
 
 (go-loop [e (<! err-ch)]
   (when e
-    (println "TOPIQ UNCAUGHT" e)
+    (.error js/console "TOPIQ UNCAUGHT" e)
     (recur (<! err-ch))))
 
 (def uri (goog.Uri. js/location.href))
@@ -37,7 +38,18 @@
 
 
 (def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
-              '(fn [old params] (d/db-with old params)) (fn [old params] (d/db-with old params))})
+              '(fn [old params] (d/db-with old params))
+              (fn [old params]
+                (let [old (if-not (d/db? old)
+                            (let [schema {:up-votes {:db/cardinality :db.cardinality/many}
+                                          :down-votes {:db/cardinality :db.cardinality/many}
+                                          :posts {:db/cardinality :db.cardinality/many}
+                                          :arguments {:db/cardinality :db.cardinality/many}
+                                          :hashtags {:db/cardinality :db.cardinality/many}}
+                                  conn   (d/create-conn schema)]
+                              @conn)
+                            old)]
+                  (d/db-with old params)))})
 
 
 (defn navbar-view
@@ -142,7 +154,6 @@
           (str ":" 8080 #_(.getPort uri)))
         "/replikativ/ws")))
 
-  (println "connected.")
 
   (defn login-fn [new-user]
     (go
@@ -169,19 +180,21 @@
     (go-loop [{{{{{{heads "master"} :branches cg :commit-graph :as cdvcs} :op
                   method :method}
                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}
-                (get-in @stage [:config :user])} :downstream :as pub} (<! pub-ch)]
+                (get-in @stage [:config :user])} :downstream :as pub} (<! pub-ch)
+              applied #{}]
       ;; HACK for single commit ops to work with commit-history-values by setting commit as root
-      (let [cg (if (= 1 (count cg)) (assoc cg (first heads) []) cg)]
-        #_(println "PUB" pub)
-        (cond (= 1 (count heads))
-              (let [txs (mapcat :transactions (<! (commit-history-values store cg (first heads))))]
-                (swap! val-atom
-                       #(reduce (partial trans-apply eval-fn)
-                                %
-                                (filter (comp not empty?) txs))))
-              :else
-              (summarize-conflict store eval-fn cdvcs "master"))
-        (recur (<! pub-ch)))))
+      (when-not (applied heads)
+        (let [cg (if (= 1 (count cg)) (assoc cg (first heads) []) cg)]
+          #_(println "PUB" pub)
+          (cond (= 1 (count heads))
+                (let [txs (mapcat :transactions (<! (commit-history-values store cg (first heads))))]
+                  (swap! val-atom
+                         #(reduce (partial trans-apply eval-fn)
+                                  %
+                                  (filter (comp not empty?) txs))))
+                :else
+                (summarize-conflict store eval-fn cdvcs "master"))))
+      (recur (<! pub-ch) (conj applied heads))))
 
 
   (om/root
@@ -195,7 +208,17 @@
   (require 'figwheel-sidecar.repl-api)
   (figwheel-sidecar.repl-api/cljs-repl)
 
+  (get-in @(:state store) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] :state])
+  (dissoc (get-in @stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state]) :store)
 
+  (dissoc (get-in @stage ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state]) :store)
+
+
+  (dissoc (-downstream (get-in @stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+                       {:method :pull, :version 1, :commit-graph {#uuid "3cb159cd-1b5c-5cfa-834b-53a8d1c40d03" [#uuid "2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f"], #uuid "2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f" [#uuid "3004b2bd-3dd9-5524-a09c-2da166ffad6a"]}, :branches {"master" #{#uuid "3cb159cd-1b5c-5cfa-834b-53a8d1c40d03"}}}) :store)
+
+
+  (get-in @stage [:config])
 
   ;; recreate database
   (sc/create-repo! stage
@@ -218,14 +241,20 @@
 
 
   (go
-    (doseq [i (range 100)]
-      (<! (sc/transact stage ["eve@topiq.es"
-                              #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                              "master"]
-                       '(fn replace [old params] params)
-                       i))
-      (<! (sc/commit! stage {"eve@topiq.es" {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})
-          )))
+    (let [start (js/Date.)]
+      (doseq [i (range 1000)]
+        (<! (sc/transact stage ["eve@topiq.es"
+                                #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                                "master"]
+                         '(fn [old params] (d/db-with old params))
+                         [{:db/unique-identity [:item/id (uuid)]
+                           :title (str i)
+                           :detail-text  (str i)
+                           :author "benchmark@topiq.es"
+                           :ts (js/Date.)}]))
+        (<! (sc/commit! stage {"eve@topiq.es" {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})
+            ))
+      (def benchmark (- (js/Date.) start))))
 
   (-> @stage :volatile :peer deref :volatile :store :state deref)
 

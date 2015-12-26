@@ -5,17 +5,19 @@
             [clojure.java.io :as io]
             [compojure.route :refer [resources]]
             [compojure.core :refer [GET POST defroutes]]
+
+            [kabel.platform :refer [create-http-kit-handler!]]
+            [kabel.middleware.block-detector :refer [block-detector]]
+            [kabel.middleware.log :refer [logger]]
             [replikativ.crdt.cdvcs.repo :as repo]
             [replikativ.stage :as s]
             [replikativ.core :refer [server-peer client-peer]]
-            [replikativ.platform :refer [create-http-kit-handler!]]
             [replikativ.p2p.fetch :refer [fetch]]
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.p2p.hash :refer [ensure-hash]]
-            [replikativ.p2p.block-detector :refer [block-detector]]
-            [replikativ.p2p.log :refer [logger]]
             [konserve.memory :refer [new-mem-store]]
             [konserve.filestore :refer [new-fs-store]]
+            [konserve.core :as k]
             [compojure.handler :refer [site api]]
             [org.httpkit.server :refer [with-channel on-close on-receive run-server send!]]
             [ring.util.response :as resp]
@@ -191,13 +193,26 @@
                     '(fn [old params] (d/db-with old params)) (fn [old params] (conj old params))})
 
   (count (<!! (s/commit-value (:store @server-state) commit-eval
-                              (:causal-order (<!! (-get-in (:store @server-state) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))
+                              (:causal-order (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))
                               #uuid "05b162ca-b6a6-5106-838f-00e30a1a5b9b")))
+
+  (require '[replikativ.crdt.materialize :refer [pub->crdt]])
+
+  (type (<!! (pub->crdt (:store @server-state)
+                        ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] :repo)))
+
+  (@(:state (:store @server-state)) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
+
+  (@(:state (:store @server-state)) ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
 
 
   (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
 
   (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
+
+
+
+
 
 
   )
