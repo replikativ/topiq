@@ -6,6 +6,7 @@
             [replikativ.stage :as s]
             [replikativ.crdt.cdvcs.realize :refer [commit-history-values trans-apply summarize-conflict]]
             [replikativ.crdt.cdvcs.stage :as sc]
+            [replikativ.crdt.materialize :refer [key->crdt]]
             [replikativ.peer :refer [client-peer]]
             [replikativ.crdt :refer [map->CDVCS]]
             [konserve.memory :refer [new-mem-store]]
@@ -182,8 +183,9 @@
       ;; HACK for single commit ops to work with commit-history-values by setting commit as root
       (when-not (applied new-heads)
         (let [cg (if (= 1 (count cg)) (assoc cg (first new-heads) []) cg)
-              cdvcs (get-in @stage [(get-in @stage [:config :user])
-                                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+              cdvcs (or (get-in @stage [(get-in @stage [:config :user])
+                                        #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+                        (key->crdt :cdvcs))
               heads (:heads (-downstream cdvcs pub))]
           (cond (= 1 (count heads))
                 (let [txs (mapcat :transactions (<! (commit-history-values store cg (first new-heads))))]
