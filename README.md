@@ -8,6 +8,7 @@ Test instance at <https://topiq.es>.
 
 ## TODO
 
+- improve layout code
 - organized in a discourse/conversation (branch?), e.g. private
   conversation "discourse" for each friend as "messaging"
 - support search by hash-tag, user

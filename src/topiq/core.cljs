@@ -95,6 +95,10 @@
               (do
                 (sc/transact stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] (:aborted val))
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
+
+              (isa? (type val) js/Error)
+              (omdom/div {:style "color:red"} (pr-str val))
+
               :else
               (if selected-topiq
                 (topiq-arguments val owner val-atom)
@@ -169,23 +173,27 @@
   (let [[p _] (get-in @stage [:volatile :chans])
         pub-ch (chan)]
     (async/sub p :pub/downstream pub-ch)
-    (go-loop [{{{{{heads :heads cg :commit-graph :as cdvcs} :op
+    (go-loop [{{{{{new-heads :heads cg :commit-graph} :op
                   method :method}
                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}
                 (get-in @stage [:config :user])} :downstream :as pub} (<! pub-ch)
+
               applied #{}]
       ;; HACK for single commit ops to work with commit-history-values by setting commit as root
-      (when-not (applied heads)
-        (let [cg (if (= 1 (count cg)) (assoc cg (first heads) []) cg)]
+      (when-not (applied new-heads)
+        (let [cg (if (= 1 (count cg)) (assoc cg (first new-heads) []) cg)
+              cdvcs (get-in @stage [(get-in @stage [:config :user])
+                                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+              heads (:heads (-downstream cdvcs pub))]
           (cond (= 1 (count heads))
-                (let [txs (mapcat :transactions (<! (commit-history-values store cg (first heads))))]
+                (let [txs (mapcat :transactions (<! (commit-history-values store cg (first new-heads))))]
                   (swap! val-atom
                          #(reduce (partial trans-apply eval-fn)
                                   %
                                   (filter (comp not empty?) txs))))
                 :else
                 (reset! val-atom (<! (summarize-conflict store eval-fn cdvcs))))))
-      (recur (<! pub-ch) (conj applied heads))))
+      (recur (<! pub-ch) (conj applied new-heads))))
 
 
   (om/root
@@ -204,6 +212,7 @@
 
   (dissoc (get-in @stage ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state]) :store)
 
+  (get-in @stage ["banana@joe.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state :heads])
 
   (get-in @stage [:config])
 

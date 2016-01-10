@@ -19,7 +19,6 @@
                  [org.slf4j/slf4j-log4j12 "1.7.13"]
                  [org.clojure/tools.logging "0.3.1"]
 
-                 [http-kit "2.1.19"]
                  [ring "1.4.0"]
                  [com.cemerick/friend "0.2.1"]
                  [enlive "1.1.6"]
@@ -30,7 +29,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.0-SNAPSHOT"]
+                 [io.replikativ/replikativ "0.1.0-rc2"]
                  [markdown-clj "0.9.82"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
