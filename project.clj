@@ -30,7 +30,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.0-beta7"]
+                 [io.replikativ/replikativ "0.1.0-SNAPSHOT"]
                  [markdown-clj "0.9.82"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
@@ -70,7 +70,10 @@
      {:main topiq.core
       :output-to "resources/public/js/main.js"
       :optimizations :simple
-      :pretty-print true}}]}
-
-
-  )
+      :pretty-print true}}
+    {:id "prod"
+     :source-paths ["src"]
+     :compiler
+     {:main topiq.core
+      :output-to "resources/public/js/main.js"
+      :optimizations :advanced}}]})

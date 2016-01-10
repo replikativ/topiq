@@ -9,9 +9,8 @@
             [kabel.platform :refer [create-http-kit-handler!]]
             [kabel.middleware.block-detector :refer [block-detector]]
             [kabel.middleware.log :refer [logger]]
-            [replikativ.crdt.cdvcs.repo :as repo]
             [replikativ.stage :as s]
-            [replikativ.core :refer [server-peer client-peer]]
+            [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.p2p.fetch :refer [fetch]]
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.p2p.hash :refer [ensure-hash]]
@@ -45,7 +44,7 @@
 (defn create-store
   "Creates a konserve store"
   [state]
-  (swap! state assoc :store (<!! (new-mem-store) #_(new-fs-store "store")))
+  (swap! state assoc :store (<!! #_(new-mem-store) (new-fs-store "store")))
   state)
 
 (defn- cred-fn [creds]
@@ -90,14 +89,14 @@
                         "topiq dev server"
                         store
                         err-ch
-                        (comp (partial block-detector :server)
-                              (partial logger log-atom :after-hooks)
-                              (partial hook hooks store)
-                              (partial logger log-atom :after-fetch)
-                              (partial fetch store err-ch)
-                              (partial logger log-atom :after-hash)
-                              ensure-hash
-                              ))))
+                        :middleware (comp (partial block-detector :server)
+                                          (partial logger log-atom :after-hooks)
+                                          (partial hook hooks store)
+                                          (partial logger log-atom :after-fetch)
+                                          (partial fetch store (atom {}) err-ch)
+                                          (partial logger log-atom :after-hash)
+                                          ensure-hash
+                                          ))))
   state)
 
 
@@ -118,7 +117,7 @@
   "Dispatches websocket packages"
   [{:keys [topic data] :as incoming}]
   (case topic
-    :greeting {:data "Greetings Master!" :topic :greeting}
+    :greeting {:data "Greetings my fellow Hacker!" :topic :greeting}
     :fetch-title {:title (fetch-url-title (:url data))}
     "DEFAULT"))
 
@@ -149,12 +148,7 @@
 
 
 (defn read-config [state path]
-  (let [config (-> path slurp read-string
-                   (update-in [:couchdb-url] eval) ;; maybe something better but I don't want to deal withj system vars in here
-                   #_(assoc :tag-table
-                     (atom {'datascript.Datom
-                            (fn [val] (info "DATASCRIPT-DATOM:" val)
-                              (konserve.literals.TaggedLiteral. 'datascript.Datom val))})))]
+  (let [config (-> path slurp read-string)]
     (swap! state merge config))
   state)
 
@@ -198,13 +192,13 @@
 
   (require '[replikativ.crdt.materialize :refer [pub->crdt]])
 
-  (type (<!! (pub->crdt (:store @server-state)
-                        ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] :repo)))
 
   (@(:state (:store @server-state)) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
+  (count @(:state (:store @server-state)))
 
   (@(:state (:store @server-state)) ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
 
+  (:subscriptions @(:peer @server-state))
 
   (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
 

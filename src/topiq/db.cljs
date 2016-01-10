@@ -98,9 +98,7 @@
                   (re-seq url-regexp)
                   (map first))]
     (go (<! (s/transact stage
-                        [author
-                         #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                         "master"]
+                        [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat [(merge {:db/unique-identity [:item/id post-id]
                                          :title (str (apply str (take 160 text)) "...")
@@ -117,7 +115,7 @@
                                              :post post-id
                                              :url u
                                              :ts ts}) urls))))
-        (<! (s/commit! stage {author {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
+        (<! (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
 
 
 (defn add-argument [stage author post-id text]
@@ -128,9 +126,7 @@
                   (re-seq url-regexp)
                   (map first))]
     (go (<! (s/transact stage
-                        [author
-                         #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                         "master"]
+                        [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat
                          [{:db/unique-identity [:item/id argument-id]
@@ -148,7 +144,7 @@
                                       :post post-id
                                       :url u
                                       :ts ts}) urls))))
-        (<! (s/commit! stage {author {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}})))))
+        (<! (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
 
 
 (defn add-vote [stage topiq-id voter updown]
@@ -156,12 +152,11 @@
     (when-not (= "Not logged in" voter)
       (go (<! (s/transact stage
                           [voter
-                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                           "master"]
+                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                           '(fn [old params] (d/db-with old params))
                           [{:db/unique-identity [:item/id (uuid [voter topiq-id])]
                             :topiq topiq-id
                             :voter voter
                             :updown updown
                             :ts ts}]))
-          (<! (s/commit! stage {voter {#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" #{"master"}}}))))))
+          (<! (s/commit! stage {voter #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))))
