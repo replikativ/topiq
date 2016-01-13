@@ -8,6 +8,7 @@ Test instance at <https://topiq.es>.
 
 ## TODO
 
+- fix and factor out streaming into datascript
 - improve layout code
 - organized in a discourse/conversation (branch?), e.g. private
   conversation "discourse" for each friend as "messaging"
@@ -17,7 +18,7 @@ Test instance at <https://topiq.es>.
 
 ## License
 
-Copyright © 2014-2015 Konrad Kühne & Christian Weilbach
+Copyright © 2014-2016 Konrad Kühne & Christian Weilbach
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.

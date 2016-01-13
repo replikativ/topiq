@@ -117,7 +117,7 @@
 
 
 
-;; for initial read
+;; necessary only for initial read below
 (read/register-tag-parser! 'replikativ.crdt.CDVCS map->CDVCS)
 
 (go
