@@ -1,36 +1,38 @@
 (ns topiq.core
-  (:require [topiq.view :refer [topiqs navbar topiq-arguments]]
+  (:require [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
+            [cljs.reader :refer [read-string] :as read]
             [clojure.data :refer [diff]]
-            [hasch.core :refer [uuid]]
+            [clojure.set :as set]
             [datascript.core :as d]
-            [replikativ.stage :as s]
+            [hasch.core :refer [uuid]]
+            [kabel.middleware.block-detector :refer [block-detector]]
+            [kioo.core :refer [handle-wrapper]]
+            [kioo.om :refer [content set-attr do-> substitute listen]]
+            [konserve.core :as k]
+            [konserve.memory :refer [new-mem-store]]
+            [om.core :as om :include-macros true]
+            [om.dom :as omdom]
             [replikativ.crdt.cdvcs.realize :refer [commit-history-values trans-apply summarize-conflict]]
             [replikativ.crdt.cdvcs.stage :as sc]
             [replikativ.crdt.materialize :refer [key->crdt]]
-            [replikativ.peer :refer [client-peer]]
             [replikativ.crdt :refer [map->CDVCS]]
-            [konserve.memory :refer [new-mem-store]]
-            [konserve.core :as k]
-            [replikativ.protocols :refer [-downstream]]
             [replikativ.p2p.fetch :refer [fetch]]
-            [replikativ.p2p.hooks :refer [hook default-integrity-fn]]
             [replikativ.p2p.hash :refer [ensure-hash]]
-            [kabel.middleware.block-detector :refer [block-detector]]
-            [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async]
-            [cljs.reader :refer [read-string] :as read]
-            [kioo.om :refer [content set-attr do-> substitute listen]]
-            [kioo.core :refer [handle-wrapper]]
-            [om.core :as om :include-macros true]
-            [om.dom :as omdom])
+            [replikativ.p2p.hooks :refer [hook default-integrity-fn]]
+            [replikativ.peer :refer [client-peer]]
+            [replikativ.protocols :refer [-downstream]]
+            [replikativ.stage :as s]
+            [topiq.view :refer [topiqs navbar topiq-arguments]])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (enable-console-print!)
 
 (def err-ch (chan))
 
+;; Let errors pop up
 (go-loop [e (<! err-ch)]
   (when e
-    (.error js/console "TOPIQ UNCAUGHT" e)
+    (js/alert (str "Ooops: " e))
     (recur (<! err-ch))))
 
 (def uri (goog.Uri. js/location.href))
@@ -87,10 +89,8 @@
             val (om/value app)]
         (cond (= (type val) replikativ.crdt.cdvcs.realize/Conflict) ;; TODO implement with protocol dispatch
               (do
-                (sc/merge! stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                           (concat (map :id (:commits-a val))
-                                   (map :id (:commits-b val))))
-                (omdom/div nil (str "Resolving conflicts... please wait. " (pr-str val))))
+                (sc/merge! stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] (:heads val))
+                (omdom/h3 nil (str "Resolving conflicts... please wait. ")))
 
               (= (type val) replikativ.crdt.cdvcs.stage/Abort) ;; reapply
               (do
@@ -107,21 +107,18 @@
 
 
 
-
-(def trusted-hosts (atom #{:replikativ.stage/stage (.getDomain uri)}))
-
-
-(defn- auth-fn [users]
-  (go (js/alert (pr-str "AUTH-REQUIRED: " users))
-    {"eve@topiq.es" "lisp"}))
-
-
-
 ;; necessary only for initial read below
 (read/register-tag-parser! 'replikativ.crdt.CDVCS map->CDVCS)
 
 (go
   (def store
+    ;; initialize the store in memory here for development processes
+    ;; we need to defer record instantiation until cljs load time,
+    ;; otherwise datascript and CDVCS are undefined for the clj
+    ;; analyzer
+
+    ;; NOTE: this automagically works with the server as well, as the
+    ;; store is synchronized on connection
     (<! (new-mem-store
          (atom (read-string "{#uuid \"1e82f126-532d-5718-a77c-7920559fff74\" (fn replace [old params] params), #uuid \"2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f\" {:transactions [[#uuid \"1e82f126-532d-5718-a77c-7920559fff74\" #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\"]], :ts #inst \"2016-01-09T13:07:51.666-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"eve@topiq.es\", :crdt-refs #{}}, #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-01-09T13:07:24.034-00:00\", :author \"eve@topiq.es\", :crdt-refs #{}}, #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, [\"eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" [], #uuid \"2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"]}, :heads #{#uuid \"2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f\"}, :cursor nil, :store nil, :version 1}}, #uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old))}")))))
 
@@ -145,7 +142,7 @@
                            #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))
 
 
-  ;; fix back to functions in production
+  ;; comment this out if you want to develop locally, e.g. with figwheel
   (<! (s/connect!
        stage
        (str
@@ -178,20 +175,18 @@
                   method :method}
                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}
                 (get-in @stage [:config :user])} :downstream :as pub} (<! pub-ch)
-
               applied #{}]
-      ;; HACK for single commit ops to work with commit-history-values by setting commit as root
       (when-not (applied new-heads)
-        (let [cg (if (= 1 (count cg)) (assoc cg (first new-heads) []) cg)
-              cdvcs (or (get-in @stage [(get-in @stage [:config :user])
-                                        #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+        (let [user (get-in @stage [:config :user])
+              cdvcs (or (get-in @stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
                         (key->crdt :cdvcs))
               heads (:heads (-downstream cdvcs pub))]
           (cond (= 1 (count heads))
                 (let [txs (mapcat :transactions (<! (commit-history-values store cg (first new-heads))))]
                   (swap! val-atom
                          #(reduce (partial trans-apply eval-fn)
-                                  %
+                                  (or (:lca-value %) ;; conflict, buggy in this case still, but converges
+                                      %)
                                   (filter (comp not empty?) txs))))
                 :else
                 (reset! val-atom (<! (summarize-conflict store eval-fn cdvcs))))))
@@ -237,7 +232,7 @@
 
   (go
     (let [start (js/Date.)]
-      (doseq [i (range 1e3)]
+      (doseq [i (range 1e1)]
         (<! (sc/transact stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                          '(fn [old params] (d/db-with old params))
                          [{:db/unique-identity [:item/id (uuid)]

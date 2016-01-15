@@ -1,30 +1,26 @@
 (ns topiq.core
   (:gen-class :main true)
-  (:require [clojure.edn :as edn]
-            [net.cgrand.enlive-html :refer [deftemplate set-attr substitute html] :as enlive]
+  (:require [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
+            [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [compojure.route :refer [resources]]
+            [clojure.tools.logging :refer [info warn error]]
+            [ring.util.response :as resp]
             [compojure.core :refer [GET POST defroutes]]
-
-            [kabel.platform :refer [create-http-kit-handler!]]
+            [compojure.handler :refer [site api]]
+            [compojure.route :refer [resources]]
             [kabel.middleware.block-detector :refer [block-detector]]
             [kabel.middleware.log :refer [logger]]
-            [replikativ.stage :as s]
-            [replikativ.peer :refer [server-peer client-peer]]
-            [replikativ.p2p.fetch :refer [fetch]]
-            [replikativ.p2p.hooks :refer [hook]]
-            [replikativ.p2p.hash :refer [ensure-hash]]
-            [konserve.memory :refer [new-mem-store]]
-            [konserve.filestore :refer [new-fs-store]]
+            [kabel.platform :refer [create-http-kit-handler!]]
             [konserve.core :as k]
-            [compojure.handler :refer [site api]]
-            [org.httpkit.server :refer [with-channel on-close on-receive run-server send!]]
-            [ring.util.response :as resp]
-            [cemerick.friend :as friend]
-            [cemerick.friend.workflows :as workflows]
-            [cemerick.friend.credentials :as creds]
-            [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
-            [clojure.tools.logging :refer [info warn error]]))
+            [konserve.filestore :refer [new-fs-store]]
+            [konserve.memory :refer [new-mem-store]]
+            [net.cgrand.enlive-html :refer [deftemplate set-attr substitute html] :as enlive]
+            [org.httpkit.server :refer [run-server]]
+            [replikativ.p2p.fetch :refer [fetch]]
+            [replikativ.p2p.hash :refer [ensure-hash]]
+            [replikativ.p2p.hooks :refer [hook]]
+            [replikativ.peer :refer [server-peer client-peer]]
+            [replikativ.stage :as s]))
 
 
 (def server-state (atom nil))
@@ -47,16 +43,6 @@
   (swap! state assoc :store (<!! #_(new-mem-store) (new-fs-store "store")))
   state)
 
-(defn- cred-fn [creds]
-  (creds/bcrypt-credential-fn {"eve@topiq.es" {:username "eve@topiq.es"
-                                                    :password (creds/hash-bcrypt "lisp")
-                                                    :roles #{::user}}}
-                              creds))
-
-(defn- auth-fn [users]
-  (go (println "AUTH-REQUIRED: " users)
-      {}))
-
 (def hooks (atom {[#".*"
                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
                    "master"]
@@ -70,8 +56,6 @@
   (when e
     (println "TOPIQ UNCAUGHT" e)
     (recur (<! err-ch))))
-
-(def log-atom (atom {}))
 
 (defn create-peer
   "Creates replikativ server peer"
@@ -90,55 +74,14 @@
                         store
                         err-ch
                         :middleware (comp (partial block-detector :server)
-                                          (partial logger log-atom :after-hooks)
                                           (partial hook hooks store)
-                                          (partial logger log-atom :after-fetch)
                                           (partial fetch store (atom {}) err-ch)
-                                          (partial logger log-atom :after-hash)
                                           ensure-hash
                                           ))))
   state)
 
-
-(defn fetch-url [url]
-  (enlive/html-resource (java.net.URL. url)))
-
-
-(defn fetch-url-title [url]
-  "fetch url and extract title"
-  (-> (fetch-url url)
-      (enlive/select [:head :title])
-      first
-      :content
-      first))
-
-
-(defn dispatch-bookmark
-  "Dispatches websocket packages"
-  [{:keys [topic data] :as incoming}]
-  (case topic
-    :greeting {:data "Greetings my fellow Hacker!" :topic :greeting}
-    :fetch-title {:title (fetch-url-title (:url data))}
-    "DEFAULT"))
-
-
-(defn bookmark-handler
-  "Reacts to incoming websocket packages"
-  [request]
-  (with-channel request channel
-    (on-close channel
-              (fn [status]
-                (info "bookmark channel closed: " status)))
-    (on-receive channel
-                (fn [data]
-                  (info (str "Incoming package: " (java.util.Date.)))
-                  (send! channel (str (dispatch-bookmark (edn/read-string data))))))))
-
-
 (defroutes handler
   (resources "/")
-
-  (GET "/bookmark/ws" [] bookmark-handler) ;; websocket handling
 
   (GET "/replikativ/ws" [] (-> @server-state :peer deref :volatile :handler))
 
@@ -170,7 +113,7 @@
 
 (defn -main [& args]
   (init server-state (first args))
-  (info (clojure.pprint/pprint @server-state))
+  (info (clojure.pprint/pprint (dissoc @server-state :store :peer)))
   (start-server (:port @server-state)))
 
 

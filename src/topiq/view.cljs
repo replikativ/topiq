@@ -55,7 +55,7 @@
 
 (deftemplate navbar "templates/tool.html"
   [owner {:keys [current-user search-text login-user-text search-placeholder login-fn]}]
-  {[:#nav-input-field] (do-> (set-attr :placeholder search-placeholder)
+  {#_[:#nav-input-field] #_(do-> (set-attr :placeholder search-placeholder)
                              (content search-text)
                              (listen :on-change #(handle-text-change % owner :search-text)))
    [:#nav-current-user] (do-> (content current-user)

@@ -11,6 +11,7 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.189"]
                  [org.clojure/core.cache "0.6.4"]
+                 ;; implicitly needed?
                  [org.clojure/core.memoize "0.5.8" :exclusions [org.clojure/core.cache]]
                  [org.clojure/core.async "0.2.374"]
 
@@ -19,7 +20,7 @@
                  [org.slf4j/slf4j-log4j12 "1.7.13"]
                  [org.clojure/tools.logging "0.3.1"]
 
-                 [ring "1.4.0"]
+                 [ring "1.4.0"] ;; implicitly needed?
                  [com.cemerick/friend "0.2.1"]
                  [enlive "1.1.6"]
                  [compojure "1.4.0"]
@@ -29,7 +30,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.0-rc2"]
+                 [io.replikativ/replikativ "0.1.0-SNAPSHOT"]
                  [markdown-clj "0.9.82"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
