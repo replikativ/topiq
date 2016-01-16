@@ -1,6 +1,6 @@
 (ns topiq.view
   (:require [topiq.db :refer [get-topiq get-topiqs get-arguments vote-count
-                                        add-topiq add-argument add-vote]]
+                                        add-topiq add-argument add-vote url-regexp]]
             [topiq.plugins :refer [render-content replace-hashtags]]
             [kioo.om :refer [html-content content after set-attr do-> substitute
                              listen prepend append html remove-class add-class]]
@@ -45,9 +45,12 @@
     (if (= "Not logged in" username)
       (js/alert "Please login or register.")
       (try
-        (if selected-topiq
-          (add-argument stage username selected-topiq (dom/value (dom/by-id "general-input-form")))
-          (add-topiq stage username (dom/value (dom/by-id "general-input-form"))))
+        (let [text (dom/value (dom/by-id "general-input-form"))]
+          (if (> (count text) 10)
+            (if selected-topiq
+              (add-argument stage username selected-topiq text)
+              (add-topiq stage username text))
+            (js/alert "Not enough input.")))
         (dom/set-value! (dom/by-id "general-input-form") "")
         (catch js/Object e
             (js/alert e))))))
@@ -56,8 +59,8 @@
 (deftemplate navbar "templates/tool.html"
   [owner {:keys [current-user search-text login-user-text search-placeholder login-fn]}]
   {#_[:#nav-input-field] #_(do-> (set-attr :placeholder search-placeholder)
-                             (content search-text)
-                             (listen :on-change #(handle-text-change % owner :search-text)))
+                                 (content search-text)
+                                 (listen :on-change #(handle-text-change % owner :search-text)))
    [:#nav-current-user] (do-> (content current-user)
                               (listen :on-change #(.log js/console (.. % -target -value))))
    [:#login-user-input] (do-> (set-attr :value login-user-text)
@@ -92,16 +95,14 @@
   {[:.topiq] (set-attr "id" (str "topiq-" (:id topiq)))
    [:.argument-counter] (content (-> (get-arguments (:id topiq) app) count))
    [:.argument-ref] (do->
-                    (set-attr :href (str "#" (:id topiq)))
-                    (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq))))
+                     (set-attr :href (str "#" (:id topiq)))
+                     (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq))))
    [:.topiq-text] (html-content
                    (let [text (replace-hashtags (:title topiq))]
-                     (if (:detail-url topiq)
-                       (clojure.string/replace
-                        text
-                        (re-pattern (:detail-url topiq))
-                        (str "<a href='" (:detail-url topiq) "' target='_blank'> "(:detail-url topiq) " </a>"))
-                       text)))
+                     (reduce
+                      #(clojure.string/replace %1 %2 (str "<a href='" %2 "' target='_blank'> link </a>"))
+                      text
+                      (map first (re-seq url-regexp text)))))
    [:.topiq-author] (content (:author topiq))
    [:.topiq-ts] (content (compute-time-diff (:ts topiq)))
    [:.topiq-vote-group] (substitute (topiq-vote-group (om/get-state owner :stage)
@@ -115,12 +116,10 @@
   {[:.topiq-text] (html-content
                    (let [topiq (get-topiq (om/get-state owner :selected-topiq) @db)
                          text (replace-hashtags (:title topiq))]
-                     (if (:detail-url topiq)
-                       (clojure.string/replace
-                        text
-                        (re-pattern (:detail-url topiq))
-                        (str " <a href='" (:detail-url topiq) "' target='_blank'> " (:detail-url topiq) " </a> " ))
-                       text)))
+                     (reduce
+                      #(clojure.string/replace %1 %2 (str "<a href='" %2 "' target='_blank'> link </a>"))
+                      text
+                      (map first (re-seq url-regexp text)))))
    [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) @db)))
    [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) @db))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
