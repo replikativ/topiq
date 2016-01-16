@@ -78,17 +78,17 @@
 (defn topiqs-view
   "Builds topiqs list with topiq head and related argument list, resolves conflicts"
   [stage app owner]
-  (go-loop []
-    (<! (timeout (* 60 1000)))
-    ;; do not eat the battery
-    (when-not (.-hidden js/document)
-      (om/refresh! owner))
-    (recur))
   (reify
     om/IInitState
     (init-state [_]
       {:selected-topiq false
-       :stage stage})
+       :stage stage
+       :refresh-loop (go-loop []
+                       (<! (timeout (* 60 1000)))
+                       ;; do not eat the battery
+                       (when-not (.-hidden js/document)
+                         (om/refresh! owner))
+                       (recur))})
     om/IRenderState
     (render-state [this {:keys [selected-topiq stage] :as state}]
       (let [user (get-in @stage [:config :user])
