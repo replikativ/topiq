@@ -43,6 +43,7 @@
 (def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
               '(fn [old params] (d/db-with old params))
               (fn [old params]
+                ;; HACK let's ensure that there always is a db
                 (let [old (if-not (d/db? old)
                             (let [schema {:up-votes {:db/cardinality :db.cardinality/many}
                                           :down-votes {:db/cardinality :db.cardinality/many}
@@ -74,9 +75,16 @@
 
 (def val-atom (atom {}))
 
+;; refresh time calculations
+
+
 (defn topiqs-view
   "Builds topiqs list with topiq head and related argument list, resolves conflicts"
   [stage app owner]
+  (go-loop []
+    (<! (timeout (* 60 1000)))
+    (om/refresh! owner)
+    (recur))
   (reify
     om/IInitState
     (init-state [_]
@@ -171,26 +179,30 @@
   (let [[p _] (get-in @stage [:volatile :chans])
         pub-ch (chan)]
     (async/sub p :pub/downstream pub-ch)
-    (go-loop [{{{{{new-heads :heads cg :commit-graph} :op
+    (go-loop [{{{{{new-heads :heads} :op
                   method :method}
                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}
                 (get-in @stage [:config :user])} :downstream :as pub} (<! pub-ch)
               applied #{}]
-      (when-not (applied new-heads)
-        (let [user (get-in @stage [:config :user])
-              cdvcs (or (get-in @stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
-                        (key->crdt :cdvcs))
-              heads (:heads (-downstream cdvcs pub))]
-          (cond (= 1 (count heads))
-                (let [txs (mapcat :transactions (<! (commit-history-values store cg (first new-heads))))]
-                  (swap! val-atom
-                         #(reduce (partial trans-apply eval-fn)
-                                  (or (:lca-value %) ;; conflict, buggy in this case still, but converges
-                                      %)
-                                  (filter (comp not empty?) txs))))
-                :else
-                (reset! val-atom (<! (summarize-conflict store eval-fn cdvcs))))))
-      (recur (<! pub-ch) (conj applied new-heads))))
+      (let [user (get-in @stage [:config :user])
+            cdvcs (or (get-in @stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+                      (key->crdt :cdvcs))
+            {:keys [heads commit-graph]} (-downstream cdvcs pub)]
+        (cond (= 1 (count heads))
+              (let [txs (mapcat :transactions (<! (commit-history-values store commit-graph
+                                                                         (first new-heads)
+                                                                         :ignore applied)))]
+                (swap! val-atom
+                       #(reduce (partial trans-apply eval-fn)
+                                (or (:lca-value %) ;; conflict, buggy in this case still
+                                    ;; misses commits between lca and merge
+                                    %)
+                                (filter (comp not empty?) txs)))
+                (recur (<! pub-ch) (set/union applied (keys commit-graph))))
+              :else
+              (do
+                (reset! val-atom (<! (summarize-conflict store eval-fn cdvcs)))
+                (recur (<! pub-ch) applied))))))
 
 
   (om/root

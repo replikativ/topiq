@@ -100,18 +100,23 @@
     (go (<! (s/transact stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
-                        (concat [(merge {:db/unique-identity [:item/id post-id]
-                                         :title (str (apply str (take 160 text)) "...")
+                        (concat [(merge {:db/id -1
+                                         :identity/id post-id
+                                         :title (let [sub (str (apply str (take 160 text)))]
+                                                  (if (< (count sub) 160) sub
+                                                      (str sub "...")))
                                          :detail-text  text
                                          :author author
                                          :ts ts}
                                         (when-let [u (first urls)]
                                           {:detail-url u}))]
-                                (map (fn [t] {:db/unique-identity [:item/id (uuid)]
+                                (map (fn [t] {:db/id -1
+                                             :identity/id (uuid)
                                              :post post-id
                                              :tag (keyword t)
                                              :ts ts}) hash-tags)
-                                (map (fn [u] {:db/unique-identity [:item/id (uuid)]
+                                (map (fn [u] {:db/id -1
+                                             :identity/id (uuid)
                                              :post post-id
                                              :url u
                                              :ts ts}) urls))))
@@ -129,18 +134,21 @@
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat
-                         [{:db/unique-identity [:item/id argument-id]
+                         [{:db/id -1
+                           :identity/id argument-id
                            :post post-id
                            :content text
                            :author author
                            :ts ts}]
                          (map (fn [t]
-                                {:db/unique-identity [:item/id (uuid)]
+                                {:db/id -1
+                                 :identity/id (uuid)
                                  :argument argument-id
                                  :tag (keyword t)
                                  :ts ts})
                               hash-tags)
-                         (map (fn [u] {:db/unique-identity [:item/id (uuid)]
+                         (map (fn [u] {:db/id -1
+                                      :identity/id (uuid)
                                       :post post-id
                                       :url u
                                       :ts ts}) urls))))
@@ -154,7 +162,8 @@
                           [voter
                            #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                           '(fn [old params] (d/db-with old params))
-                          [{:db/unique-identity [:item/id (uuid [voter topiq-id])]
+                          [{:db/id -1
+                            :identity/id (uuid [voter topiq-id])
                             :topiq topiq-id
                             :voter voter
                             :updown updown

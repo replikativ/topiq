@@ -133,19 +133,16 @@
                               (:causal-order (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))
                               #uuid "05b162ca-b6a6-5106-838f-00e30a1a5b9b")))
 
-  (require '[replikativ.crdt.materialize :refer [pub->crdt]])
+  (require '[replikativ.crdt.materialize :refer [key->crdt]])
 
 
-  (@(:state (:store @server-state)) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
-  (count @(:state (:store @server-state)))
-
-  (@(:state (:store @server-state)) ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])
+  (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))
 
   (:subscriptions @(:peer @server-state))
 
-  (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
+  (count (keys (:causal-order (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))))
 
-  (count (keys (:causal-order (<!! (-get-in (:store @server-state) ["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"])))))
+  (count (keys (:causal-order (<!! (k/get-in (:store @server-state) [["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))))
 
 
 

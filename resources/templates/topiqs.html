@@ -2,11 +2,23 @@
   <head>
     <meta title="generator" content="content" charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link id="bootstrap-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
-    <link id="bootstrap-theme-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"/>
+    <link id="bootstrap-css" rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
+    <link id="bootstrap-theme-css" rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"/>
     <link id="custom-css" rel="stylesheet" href="../public/style.css"/>
   </head>
   <body>
+
+    <!-- primary input -->
+    <div class="input-group" style="marginBottom: 20px">
+      <textarea class="form-control input-lg" type="text" id="general-input-form" rows="4" style="resize:vertical;" placeholder="Write a new post..." maxlength="160"></textarea>
+      <span class="input-group-btn" id="general-input-btn">
+        <button class="btn btn-primary btn-lg" id="post-btn">
+          <span class="glyphicon glyphicon-send"></span>
+        </button>
+      </span>
+    </div>
+    <!-- primary input -->
+
     <!-- topiqs list -->
     <div id="topiq-list">
 
@@ -16,10 +28,10 @@
           <div class="container-fluid">
             <div class="row">
           <!-- topiq header -->
-          <div class="col-md-11 topiq-header">
+          <div class="col-xs-11 topiq-header">
             <!-- topiq text -->
             <h4 class="list-group-item-heading">
-              <text class="topiq-text">TOPIQ will be a very nice <a>#social</a> discourse <a>#network</a> in the near future. Visit us here <a href="https://lc.polyc0l0r.net" target="_blank">topiq.es</a></text>
+              <text class="topiq-text">TOPIQ will be a very nice <a>#social</a> discourse <a>#network</a> in the near future. Visit us here <a href="https://topiq.es" target="_blank">topiq.es</a></text>
 
             </h4>
             <!-- topiq text end -->
@@ -50,16 +62,19 @@
           </div>
           <!--post header end-->
           <!-- argument counter -->
-          <div class="col-md-1 topiq-vote-group">
-            <div class="container-fluid">
+          <div class="col-xs-1 topiq-vote-group">
+            <div class="container text-center" style="width:50px">
               <div class="row">
-                <div class="col-xs-12 center-block glyphicon glyphicon-chevron-up"></div>
+                <div class="center-block glyphicon glyphicon-chevron-up"
+                     style="paddingBottom: 5px">
+                </div>
               </div>
               <div class="row">
-                <div class="col-xs-12 center-block badge vote-counter">0</div>
+                <div class="badge vote-counter">1123</div>
               </div>
               <div class="row">
-                <div class="col-xs-12 center-block glyphicon glyphicon-chevron-down"></div>
+                <div class="center-block glyphicon glyphicon-chevron-down"
+                     style="paddingTop: 5px"></div>
               </div>
             </div>
           </div>
@@ -71,17 +86,6 @@
         <!--topiq end -->
     </div>
     <!-- topiqs list end -->
-
-    <!-- primary input -->
-    <div class="input-group">
-      <textarea class="form-control input-lg" type="text" id="general-input-form" rows="4" style="resize:vertical;" placeholder="Write a new post..." maxlength="160"></textarea>
-      <span class="input-group-btn" id="general-input-btn">
-        <button class="btn btn-primary btn-lg" id="post-btn">
-          <span class="glyphicon glyphicon-send"></span>
-        </button>
-      </span>
-    </div>
-    <!-- primary input -->
 
    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>

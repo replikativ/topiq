@@ -135,12 +135,10 @@
 
 (deftemplate topiqs "templates/topiqs.html"
   [app owner]
-  {[:.list-group] (content (map #(topiq % app owner) (let [ts (get-topiqs app)]
-                                                       #_(println "topiqs" ts)
-                                                       ts)))
-   [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
+  {[:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)
                                                   (when (= (.-which %) 13)
                                                     (when (.-ctrlKey %)
                                                       (commit owner)))))
-   [:#post-btn] (listen :on-click (fn [e] (commit owner)))})
+   [:#post-btn] (listen :on-click (fn [e] (commit owner)))
+   [:.list-group] (content (for [t (get-topiqs app)] (topiq t app owner)))})
