@@ -27,9 +27,10 @@
     (- up-cnt down-cnt)))
 
 (defn- rank [{:keys [ts vote-count]}]
-  (* vote-count (.exp js/Math (/ (- ts (.getTime (js/Date.)))
-                                 ;; scale decay so we don't hit zero rank too quickly
-                                 (* 7 24 3600 1000)))))
+  (* (.exp js/Math (/ vote-count 300))
+     (.exp js/Math (/ (- ts (.getTime (js/Date.)))
+                      ;; scale decay so we don't hit zero rank too quickly
+                      (* 7 24 3600 1000)))))
 
 
 (defn get-topiqs [db]

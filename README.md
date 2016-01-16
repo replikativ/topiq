@@ -1,6 +1,6 @@
 # Topiq
 
-A social networking/messaging web-application based on P2P synching.
+A social network application based on [P2P replication with CRDTs](https://github.com/replikativ/replikativ).
 
 ## Usage
 
@@ -8,8 +8,12 @@ Test instance at <https://topiq.es>.
 
 ## TODO
 
-- fix and factor out streaming into datascript
-- improve layout code
+- better editor for markdown
+- real authentication in kabel/replikativ
+- factor out streaming into datascript into replikativ
+- improve datascript queries and understanding, e.g. rank & sort in datascript
+- make layout embeddable as comment stream
+- investigate problems with advanced compilation to reduce loading times
 - organized in a discourse/conversation (branch?), e.g. private
   conversation "discourse" for each friend as "messaging"
 - support search by hash-tag, user

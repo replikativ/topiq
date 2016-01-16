@@ -32,6 +32,7 @@
 ;; Let errors pop up
 (go-loop [e (<! err-ch)]
   (when e
+    (.error js/console "UNCAUGHT:" e)
     (js/alert (str "Ooops: " e))
     (recur (<! err-ch))))
 
@@ -45,11 +46,7 @@
               (fn [old params]
                 ;; HACK let's ensure that there always is a db
                 (let [old (if-not (d/db? old)
-                            (let [schema {:up-votes {:db/cardinality :db.cardinality/many}
-                                          :down-votes {:db/cardinality :db.cardinality/many}
-                                          :posts {:db/cardinality :db.cardinality/many}
-                                          :arguments {:db/cardinality :db.cardinality/many}
-                                          :hashtags {:db/cardinality :db.cardinality/many}}
+                            (let [schema {:identity/id {:db/unique :db.unique/identity}}
                                   conn   (d/create-conn schema)]
                               @conn)
                             old)]
@@ -83,7 +80,9 @@
   [stage app owner]
   (go-loop []
     (<! (timeout (* 60 1000)))
-    (om/refresh! owner)
+    ;; do not eat the battery
+    (when-not (.-hidden js/document)
+      (om/refresh! owner))
     (recur))
   (reify
     om/IInitState
@@ -100,7 +99,7 @@
                 (sc/merge! stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] (:heads val))
                 (omdom/h3 nil (str "Resolving conflicts... please wait. ")))
 
-              (= (type val) replikativ.crdt.cdvcs.stage/Abort) ;; reapply
+              (= (type val) replikativ.crdt.cdvcs.stage/Abort) ;; TODO check reapply
               (do
                 (sc/transact stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"] (:aborted val))
                 (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
