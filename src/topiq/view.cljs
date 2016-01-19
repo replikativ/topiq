@@ -73,12 +73,21 @@
    [:#forgot-user-input] (set-attr :disabled true)})
 
 
+(defn expose-links [text]
+  (let [free-url #"([\(]?)((https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?)[\)]?"
+        links (re-seq free-url text)]
+    (reduce (fn [text [_ par url]]
+              (if (empty? par)
+                (.replace text url (str "[" url "](" url ")"))
+                text)) text links)))
+
 ;; --- user post templates ---
 (defsnippet topiq-argument "templates/argument.html" [:.argument]
   [argument]
   {[:.argument-text] (-> (:content argument)
-                        render-content
-                        html-content)
+                         expose-links
+                         render-content
+                         html-content)
    [:.argument-author] (content (:author argument))
    [:.argument-ts] (content (compute-time-diff (:ts argument)))})
 
@@ -110,7 +119,7 @@
                                                       topiq
                                                       (.-innerHTML (dom/by-id "nav-current-user"))))})
 
-;; WARNING: pure arguments name clashes with compiler
+;; WARNING: pure "arguments" name clashes with compiler
 (deftemplate topiq-arguments "templates/argument.html"
   [app owner db]
   {[:.topiq-text] (html-content
