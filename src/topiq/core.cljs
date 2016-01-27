@@ -141,7 +141,7 @@
                                            ensure-hash
                                            (partial block-detector :client-surface))))
 
-  (def stage (<! (s/create-stage! "eve@topiq.es" peer err-ch eval-fn)))
+  (def stage (<! (s/create-stage! "eve@topiq.es" peer err-ch)))
 
 
   (<! (s/subscribe-crdts! stage
