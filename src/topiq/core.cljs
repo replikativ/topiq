@@ -12,13 +12,15 @@
             [konserve.memory :refer [new-mem-store]]
             [om.core :as om :include-macros true]
             [om.dom :as omdom]
-            [replikativ.crdt.cdvcs.realize :refer [commit-history-values trans-apply summarize-conflict]]
+            [replikativ.crdt.cdvcs.realize :refer [commit-history-values trans-apply summarize-conflict commit-history]]
             [replikativ.crdt.cdvcs.stage :as sc]
             [replikativ.crdt.materialize :refer [key->crdt]]
+            [replikativ.crdt.cdvcs.realize :refer [head-value]]
             [replikativ.crdt :refer [map->CDVCS]]
             [replikativ.p2p.fetch :refer [fetch]]
             [replikativ.p2p.hash :refer [ensure-hash]]
             [replikativ.p2p.hooks :refer [hook default-integrity-fn]]
+            [replikativ.p2p.filter-subs :refer [filtered-subscriptions]]
             [replikativ.peer :refer [client-peer]]
             [replikativ.protocols :refer [-downstream]]
             [replikativ.stage :as s]
@@ -41,7 +43,7 @@
 (def ssl? (= (.getScheme uri) "https"))
 
 
-(def eval-fn {'(fn replace [old params] params) (fn replace [old params] params)
+(def eval-fn {'(fn [_ new] new) (fn [_ new] new)
               '(fn [old params] (d/db-with old params))
               (fn [old params]
                 ;; HACK let's ensure that there always is a db
@@ -127,26 +129,27 @@
     ;; NOTE: this automagically works with the server as well, as the
     ;; store is synchronized on connection
     (<! (new-mem-store
-         (atom (read-string "{#uuid \"1e82f126-532d-5718-a77c-7920559fff74\" (fn replace [old params] params), #uuid \"2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f\" {:transactions [[#uuid \"1e82f126-532d-5718-a77c-7920559fff74\" #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\"]], :ts #inst \"2016-01-09T13:07:51.666-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"eve@topiq.es\", :crdt-refs #{}}, #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-01-09T13:07:24.034-00:00\", :author \"eve@topiq.es\", :crdt-refs #{}}, #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, [\"eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" [], #uuid \"2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"]}, :heads #{#uuid \"2a5f89e0-c122-5b7f-83f1-a4fbd9c3821f\"}, :cursor nil, :store nil, :version 1}}, #uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old))}")))))
+         (atom (read-string "{#uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old)), #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-02-25T22:02:59.868-00:00\", :author \"eve@topiq.es\", :crdt-refs #{}}, [\"eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"156c2e83-3159-588f-a075-245e01a447a0\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" []}, :heads #{#uuid \"156c2e83-3159-588f-a075-245e01a447a0\"}, :version 1}}, #uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" (fn [_ new] new), #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"156c2e83-3159-588f-a075-245e01a447a0\" {:transactions [[#uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\"]], :ts #inst \"2016-02-25T22:03:03.762-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"eve@topiq.es\", :crdt-refs #{}}}")))))
+
+  ;; ensure we are only tracking necessary CRDTs
+  (<! (k/assoc-in store [:peer-config :sub-filter]
+                  {"eve@topiq.es" #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))
 
   (def hooks (atom {}))
 
 
-  (def peer (client-peer "CLIENT-PEER"
-                         store
-                         err-ch
-                         :middleware (comp (partial block-detector :client-core)
-                                           (partial hook hooks store)
-                                           (partial fetch store (atom {}) err-ch)
-                                           ensure-hash
-                                           (partial block-detector :client-surface))))
+  (def peer (<! (client-peer store err-ch
+                             :middleware (comp (partial block-detector :client-core)
+                                               (partial hook hooks store)
+                                               (partial fetch store (atom {}) err-ch)
+                                               ensure-hash
+                                               (partial block-detector :client-surface)
+                                               filtered-subscriptions))))
 
   (def stage (<! (s/create-stage! "eve@topiq.es" peer err-ch)))
 
 
-  (<! (s/subscribe-crdts! stage
-                          {"eve@topiq.es"
-                           #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))
+  (<! (s/subscribe-crdts! stage {"eve@topiq.es" #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))
 
 
   ;; comment this out if you want to develop locally, e.g. with figwheel
@@ -178,19 +181,23 @@
   (let [[p _] (get-in @stage [:volatile :chans])
         pub-ch (chan)]
     (async/sub p :pub/downstream pub-ch)
-    (go-loop [{{{{{new-heads :heads} :op
-                  method :method}
-                 #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}
-                (get-in @stage [:config :user])} :downstream :as pub} (<! pub-ch)
+    (go-loop [{{{new-heads :heads} :op
+                method :method}
+               :downstream :as pub
+               :keys [user crdt-id]} (<! pub-ch)
               applied #{}]
-      (let [user (get-in @stage [:config :user])
-            cdvcs (or (get-in @stage [user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
+      (let [suser (get-in @stage [:config :user])
+            cdvcs (or (get-in @stage [suser #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
                       (key->crdt :cdvcs))
             {:keys [heads commit-graph]} (-downstream cdvcs pub)]
-        (cond (= 1 (count heads))
+        (cond (not (and (= user suser)
+                        (= crdt-id  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5")))
+              (recur (<! pub-ch) applied)
+
+              (= 1 (count heads))
               (let [txs (mapcat :transactions (<! (commit-history-values store commit-graph
                                                                          (first new-heads)
-                                                                         :ignore applied)))]
+                                                                         :to-ignore (set applied))))]
                 (swap! val-atom
                        #(reduce (partial trans-apply eval-fn)
                                 (or (:lca-value %) ;; conflict, buggy in this case still
@@ -198,6 +205,7 @@
                                     %)
                                 (filter (comp not empty?) txs)))
                 (recur (<! pub-ch) (set/union applied (keys commit-graph))))
+
               :else
               (do
                 (reset! val-atom (<! (summarize-conflict store eval-fn cdvcs)))
@@ -236,7 +244,7 @@
         conn   (d/create-conn schema)]
     (go
       (<! (sc/transact stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                       '(fn replace [old params] params)
+                       '(fn [_ new] new)
                        @conn))
       (<! (sc/commit! stage {"eve@topiq.es" #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))
 

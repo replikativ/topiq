@@ -7,7 +7,7 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 
-(def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S+)?")
+(def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S*)?")
 
 (def hashtag-regexp #"(^|\s|\.|;|,|!|-)(#[\w\d\u00a1-\uffff_-]+)")
 

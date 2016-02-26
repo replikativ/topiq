@@ -106,6 +106,7 @@
    [:.argument-ref] (do->
                      (set-attr :href (str "#" (:id topiq)))
                      (listen :on-click #(om/set-state! owner :selected-topiq (:id topiq))))
+   ;; XSS attack possible?
    [:.topiq-text] (html-content
                    (let [text (replace-hashtags (:title topiq))]
                      (reduce

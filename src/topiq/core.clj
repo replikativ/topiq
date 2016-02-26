@@ -19,8 +19,10 @@
             [replikativ.p2p.fetch :refer [fetch]]
             [replikativ.p2p.hash :refer [ensure-hash]]
             [replikativ.p2p.hooks :refer [hook]]
+            [replikativ.p2p.filter-subs :refer [filtered-subscriptions]]
             [replikativ.peer :refer [server-peer client-peer]]
-            [replikativ.stage :as s]))
+            [replikativ.stage :as s]
+            [full.async :refer [<??]]))
 
 
 (def server-state (atom nil))
@@ -40,7 +42,7 @@
 (defn create-store
   "Creates a konserve store"
   [state]
-  (swap! state assoc :store (<!! #_(new-mem-store) (new-fs-store "store")))
+  (swap! state assoc :store (<!! (new-mem-store) #_(new-fs-store "store")))
   state)
 
 (def hooks (atom {[#".*"
@@ -60,24 +62,20 @@
 (defn create-peer
   "Creates replikativ server peer"
   [state]
-  (let [{:keys [proto host port build tag-table store trusted-hosts]} @state]
+  (let [{:keys [proto host port build tag-table store trusted-hosts]} @state
+        uri (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
+                 "://" host
+                 (when (= :dev build)
+                   (str ":" port))
+                 "/replikativ/ws")]
     (swap! state
-           (fn [old new] (assoc-in old [:peer] new))
-           (server-peer (create-http-kit-handler!
-                         (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
-                              "://" host
-                              (when (= :dev build)
-                                (str ":" port))
-                              "/replikativ/ws")
-                         err-ch)
-                        "topiq dev server"
-                        store
-                        err-ch
-                        :middleware (comp (partial block-detector :server)
-                                          (partial hook hooks store)
-                                          (partial fetch store (atom {}) err-ch)
-                                          ensure-hash
-                                          ))))
+           (fn [old peer] (assoc-in old [:peer] peer))
+           (<?? (server-peer store err-ch uri
+                             :middleware (comp (partial block-detector :server)
+                                               (partial hook hooks store)
+                                               (partial fetch store (atom {}) err-ch)
+                                               ensure-hash
+                                               filtered-subscriptions)))))
   state)
 
 (defroutes handler

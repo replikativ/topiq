@@ -8,7 +8,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :source-paths ["src"]
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.7.189"]
                  [org.clojure/core.cache "0.6.4"]
                  ;; implicitly needed?
@@ -30,7 +30,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.1-SNAPSHOT"]
+                 [io.replikativ/replikativ "0.1.1"]
                  [markdown-clj "0.9.82"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
@@ -39,7 +39,7 @@
                                                  "cemerick.piggieback/wrap-cljs-repl"]}
                    :plugins [[lein-figwheel "0.5.0-2"]]}}
 
-  :plugins [[lein-cljsbuild "1.1.1"]]
+  :plugins [[lein-cljsbuild "1.1.2"]]
 
   :main topiq.core
 
