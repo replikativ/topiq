@@ -94,7 +94,6 @@
     om/IRenderState
     (render-state [this {:keys [selected-topiq stage] :as state}]
       (let [user (get-in @stage [:config :user])
-            _ (println "NEW VAL" app)
             val (om/value app)]
         (cond (= (type val) replikativ.crdt.cdvcs.realize/Conflict) ;; TODO implement with protocol dispatch
               (do
@@ -218,6 +217,21 @@
    {:target (. js/document (getElementById "topiq-container"))}))
 
 
+;; prototype helpers to reimport DB on schema changes etc.
+;; TODO serialize datascript/DB properly with incognito
+(defn ^:export print-db []
+  (println (pr-str @val-atom)))
+
+(defn ^:export read-db [db-str]
+  (go
+    (.info js/console (<! (sc/transact stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                                       '(fn [old params] (d/db-with old params))
+                                       (mapv (fn [datom] (into [:db/add] datom))
+                                             (read-string db-str)))))
+    (.info js/console (<! (sc/commit! stage {"eve@topiq.es" #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
+
+
+
 (comment
   ;; jack in figwheel cljs REPL
   (require 'figwheel-sidecar.repl-api)
@@ -231,6 +245,8 @@
   (get-in @stage ["banana@joe.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state :heads])
 
   (get-in @stage [:config])
+
+
 
   ;; recreate database
   (sc/create-cdvcs! stage
@@ -263,6 +279,4 @@
         (<! (timeout 100)))
       (def benchmark (- (js/Date.) start))))
 
-  (-> @stage :volatile :peer deref :volatile :store :state deref keys)
-
-  )
+  (-> @stage :volatile :peer deref :volatile :store :state deref keys))
