@@ -19,7 +19,6 @@
             [replikativ.p2p.fetch :refer [fetch]]
             [replikativ.p2p.hash :refer [ensure-hash]]
             [replikativ.p2p.hooks :refer [hook]]
-            [replikativ.p2p.filter-subs :refer [filtered-subscriptions]]
             [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.stage :as s]
             [full.async :refer [<??]]))
@@ -68,14 +67,12 @@
                  (when (= :dev build)
                    (str ":" port))
                  "/replikativ/ws")]
-    (swap! state
-           (fn [old peer] (assoc-in old [:peer] peer))
+    (swap! state assoc :peer
            (<?? (server-peer store err-ch uri
                              :middleware (comp (partial block-detector :server)
                                                (partial hook hooks store)
                                                (partial fetch store (atom {}) err-ch)
-                                               ensure-hash
-                                               filtered-subscriptions)))))
+                                               ensure-hash)))))
   state)
 
 (defroutes handler
@@ -104,9 +101,8 @@
 
 
 (defn start-server [port]
-  (do
-    (info (str "Starting server @ port " port))
-    (run-server (site #'handler) {:port port :join? false})))
+  (info (str "Starting server @ port " port))
+  (run-server (site #'handler) {:port port :join? false}))
 
 
 (defn -main [& args]
@@ -123,6 +119,8 @@
   (def server (start-server (:port @server-state)))
 
   (server)
+
+  (<?? (k/get-in (:store @server-state) [:peer-config]))
 
   (def commit-eval {'(fn replace [old params] params) (fn replace [old params] [params])
                     '(fn [old params] (d/db-with old params)) (fn [old params] (conj old params))})

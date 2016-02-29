@@ -4,7 +4,8 @@
             [hasch.core :refer [uuid]]
             [replikativ.crdt.cdvcs.stage :as s]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async])
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
+                   [full.cljs.async :refer [<<? <? go-for go-try go-try> go-loop-try go-loop-try> alt?]]))
 
 
 (def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S*)?")
@@ -98,7 +99,7 @@
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
-    (go (<! (s/transact stage
+    (go (<? (s/transact stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat [(merge {:db/id -1
@@ -121,7 +122,7 @@
                                              :post post-id
                                              :url u
                                              :ts ts}) urls))))
-        (<! (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
+        (<? (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
 
 
 (defn add-argument [stage author post-id text]
@@ -131,7 +132,7 @@
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
-    (go (<! (s/transact stage
+    (go (<? (s/transact stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat
@@ -153,13 +154,13 @@
                                       :post post-id
                                       :url u
                                       :ts ts}) urls))))
-        (<! (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
+        (<? (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
 
 
 (defn add-vote [stage topiq-id voter updown]
   (let [ts (js/Date.)]
     (when-not (= "Not logged in" voter)
-      (go (<! (s/transact stage
+      (go (<? (s/transact stage
                           [voter
                            #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                           '(fn [old params] (d/db-with old params))
@@ -169,4 +170,4 @@
                             :voter voter
                             :updown updown
                             :ts ts}]))
-          (<! (s/commit! stage {voter #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))))
+          (<? (s/commit! stage {voter #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))))

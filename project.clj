@@ -2,14 +2,14 @@
 
   :description "An app to collectively link and share data."
 
-  :url "https://github.com/kordano/link-collective"
+  :url "https://github.com/kordano/topiq"
 
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :source-paths ["src"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.7.189"]
+                 [org.clojure/clojurescript "1.7.228"]
                  [org.clojure/core.cache "0.6.4"]
                  ;; implicitly needed?
                  [org.clojure/core.memoize "0.5.8" :exclusions [org.clojure/core.cache]]
@@ -26,11 +26,11 @@
                  [compojure "1.4.0"]
 
                  [domina "1.0.3"]
-                 [datascript "0.13.3"]
+                 [datascript "0.15.0"]
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.1"]
+                 [io.replikativ/replikativ "0.1.2-SNAPSHOT"]
                  [markdown-clj "0.9.82"]]
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]

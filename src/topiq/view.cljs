@@ -122,18 +122,18 @@
 
 ;; WARNING: pure "arguments" name clashes with compiler
 (deftemplate topiq-arguments "templates/argument.html"
-  [app owner db]
+  [app owner]
   {[:.topiq-text] (html-content
-                   (let [topiq (get-topiq (om/get-state owner :selected-topiq) @db)
+                   (let [topiq (get-topiq (om/get-state owner :selected-topiq) app)
                          text (replace-hashtags (:title topiq))]
                      (reduce
                       #(clojure.string/replace %1 %2 (str "<a href='" %2 "' target='_blank'> link </a>"))
                       text
                       (map first (re-seq url-regexp text)))))
-   [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) @db)))
-   [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) @db))))
+   [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
+   [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) app))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
-   [:.arguments] (content (map topiq-argument (get-arguments (om/get-state owner :selected-topiq) @db)))
+   [:.arguments] (content (map topiq-argument (get-arguments (om/get-state owner :selected-topiq) app)))
    [:#general-input-form] (listen :on-key-down #(if (= (.-keyCode %) 10)
                                                   (commit owner)
                                                   (when (= (.-which %) 13)
