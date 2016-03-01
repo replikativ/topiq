@@ -1,6 +1,6 @@
 (ns topiq.core
   (:gen-class :main true)
-  (:require [clojure.core.async :refer [timeout sub chan <!! >!! <! >! go go-loop] :as async]
+  (:require [clojure.core.async :refer [timeout sub chan >!! >! go go-loop] :as async]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.logging :refer [info warn error]]
@@ -9,8 +9,6 @@
             [compojure.handler :refer [site api]]
             [compojure.route :refer [resources]]
             [kabel.middleware.block-detector :refer [block-detector]]
-            [kabel.middleware.log :refer [logger]]
-            [kabel.platform :refer [create-http-kit-handler!]]
             [konserve.core :as k]
             [konserve.filestore :refer [new-fs-store]]
             [konserve.memory :refer [new-mem-store]]
@@ -21,7 +19,7 @@
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.stage :as s]
-            [full.async :refer [<??]]))
+            [full.async :refer [<?? <? go-try go-loop-try]]))
 
 
 (def server-state (atom nil))
@@ -41,15 +39,13 @@
 (defn create-store
   "Creates a konserve store"
   [state]
-  (swap! state assoc :store (<!! (new-mem-store) #_(new-fs-store "store")))
+  (swap! state assoc :store (<?? (new-mem-store) #_(new-fs-store "store")))
   state)
 
 (def hooks (atom {[#".*"
-                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                   "master"]
+                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                   [["eve@topiq.es"
-                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
-                    "master"]]}))
+                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]}))
 
 (def err-ch (chan))
 
@@ -122,12 +118,16 @@
 
   (<?? (k/get-in (:store @server-state) [:peer-config]))
 
-  (def commit-eval {'(fn replace [old params] params) (fn replace [old params] [params])
+  (def commit-eval {'(fn [_ new] new) (fn replace [old params] [params])
                     '(fn [old params] (d/db-with old params)) (fn [old params] (conj old params))})
 
-  (count (<!! (s/commit-value (:store @server-state) commit-eval
-                              (:causal-order (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))
-                              #uuid "05b162ca-b6a6-5106-838f-00e30a1a5b9b")))
+  (require '[replikativ.crdt.cdvcs.realize :refer [commit-value commit-history-values]])
+
+
+  (<?? (commit-history-values (:store @server-state)
+                              (:commit-graph (:state (<?? (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
+                              #uuid "1699bb60-2ba4-5be1-908f-e00a03cfeef4"))
+
 
   (require '[replikativ.crdt.materialize :refer [key->crdt]])
 
