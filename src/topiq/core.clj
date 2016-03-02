@@ -1,6 +1,6 @@
 (ns topiq.core
   (:gen-class :main true)
-  (:require [clojure.core.async :refer [timeout sub chan >!! >! go go-loop] :as async]
+  (:require [clojure.core.async :refer [timeout sub chan <! >!! >! go go-loop] :as async]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.logging :refer [info warn error]]
