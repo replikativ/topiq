@@ -39,7 +39,7 @@
 (defn create-store
   "Creates a konserve store"
   [state]
-  (swap! state assoc :store (<?? (new-mem-store) #_(new-fs-store "store")))
+  (swap! state assoc :store (<?? #_(new-mem-store) (new-fs-store "store")))
   state)
 
 (def hooks (atom {[#".*"
