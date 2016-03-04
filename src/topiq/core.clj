@@ -66,8 +66,8 @@
     (swap! state assoc :peer
            (<?? (server-peer store err-ch uri
                              :middleware (comp (partial block-detector :server)
-                                               (partial hook hooks store)
                                                (partial fetch store (atom {}) err-ch)
+                                               (partial hook hooks store)
                                                ensure-hash)))))
   state)
 

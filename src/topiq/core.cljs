@@ -184,8 +184,8 @@
                  val-atom (atom {})
                  peer (<? (client-peer store err-ch
                                        :middleware (comp (partial block-detector :client-core)
-                                                         (partial hook hooks store)
                                                          (partial fetch store (atom {}) err-ch)
+                                                         (partial hook hooks store)
                                                          ensure-hash
                                                          (partial block-detector :client-surface))))
                  stage (<? (s/create-stage! "eve@topiq.es" peer err-ch))]
