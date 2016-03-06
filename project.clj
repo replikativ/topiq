@@ -33,15 +33,19 @@
                  [io.replikativ/replikativ "0.1.2-SNAPSHOT"]
                  [markdown-clj "0.9.82"]]
 
+
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
                    :figwheel {:nrepl-port 7888
                               :nrepl-middleware ["cider.nrepl/cider-middleware"
                                                  "cemerick.piggieback/wrap-cljs-repl"]}
-                   :plugins [[lein-figwheel "0.5.0-2"]]}}
+                   :plugins [[lein-figwheel "0.5.0-2"]]}
+             :uberjar {:aot :all}}
 
   :plugins [[lein-cljsbuild "1.1.2"]]
 
   :main topiq.core
+
+  :prep-tasks ["compile" ["cljsbuild" "once" "prod"]]
 
   :uberjar-name "topiq-standalone.jar"
 
@@ -54,26 +58,23 @@
 
   :cljsbuild
   {:builds
-   [{:id "cljs_repl"
-     :source-paths ["src/"]
-     :figwheel true
-     :compiler
-     {:main topiq.core
-      :asset-path "js/out"
-      :output-to "resources/public/js/main.js"
-      :output-dir "resources/public/js/out"
-      :optimizations :none
-      :pretty-print true}}
-    {:id "dev"
-     :source-paths ["src"]
-     :compiler
-     {:main topiq.core
-      :output-to "resources/public/js/main.js"
-      :optimizations :simple
-      :pretty-print true}}
-    {:id "prod"
-     :source-paths ["src"]
-     :compiler
-     {:main topiq.core
-      :output-to "resources/public/js/main.js"
-      :optimizations :advanced}}]})
+   {:figwheel {:source-paths ["src/"]
+               :figwheel true
+               :compiler
+               {:main topiq.core
+                :asset-path "js/out"
+                :output-to "resources/public/js/main.js"
+                :output-dir "resources/public/js/out"
+                :optimizations :none
+                :pretty-print true}}
+    :dev {:source-paths ["src"]
+          :compiler
+          {:main topiq.core
+           :output-to "resources/public/js/main.js"
+           :optimizations :simple
+           :pretty-print true}}
+    :prod {:source-paths ["src"]
+           :compiler
+           {:main topiq.core
+            :output-to "resources/public/js/main.js"
+            :optimizations :advanced}}}})

@@ -12,7 +12,9 @@
             [konserve.memory :refer [new-mem-store]]
             [om.core :as om :include-macros true]
             [om.dom :as omdom]
-            [replikativ.crdt.cdvcs.realize :refer [commit-history-values trans-apply summarize-conflict commit-history]]
+            [replikativ.crdt.cdvcs.realize :refer [commit-history-values trans-apply
+                                                   head-value
+                                                   summarize-conflict commit-history]]
             [replikativ.crdt.cdvcs.stage :as sc]
             [replikativ.crdt.materialize :refer [key->crdt]]
             [replikativ.crdt.cdvcs.realize :refer [head-value]]
@@ -43,16 +45,16 @@
 (def ssl? (= (.getScheme uri) "https"))
 
 
-(def eval-fn {'(fn [_ new] new) (fn [_ new] new)
-              '(fn [old params] (d/db-with old params))
-              (fn [old params]
-                ;; HACK let's ensure that there always is a db
-                (let [old (if-not (d/db? old)
-                            (let [schema {:identity/id {:db/unique :db.unique/identity}}
-                                  conn   (d/create-conn schema)]
-                              @conn)
-                            old)]
-                  (d/db-with old params)))})
+(def ^:dynamic eval-fn {'(fn [_ new] new) (fn [_ new] new)
+                        '(fn [old params] (d/db-with old params))
+                        (fn [old params]
+                          ;; HACK let's ensure that there always is a db
+                          (let [old (if-not (d/db? old)
+                                      (let [schema {:identity/id {:db/unique :db.unique/identity}}
+                                            conn   (d/create-conn schema)]
+                                        @conn)
+                                      old)]
+                            (d/db-with old params)))})
 
 
 (defn navbar-view
@@ -118,11 +120,11 @@
 
 (defn login-fn [stage hooks new-user]
   (go-try> err-ch
-    (swap! stage assoc-in [:config :user] new-user)
-    (<? (sc/fork! stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]))
-    (swap! hooks assoc ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-           [[new-user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-            default-integrity-fn true])))
+           (swap! hooks assoc ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                  [[new-user #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                   default-integrity-fn true])
+           (swap! stage assoc-in [:config :user] new-user)
+           (<? (sc/fork! stage ["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]))))
 
 (defn stream-into-db! [val-atom eval-fn stage]
   (let [{{[p _] :chans
@@ -130,7 +132,8 @@
         pub-ch (chan)]
     (async/sub p :pub/downstream pub-ch)
     (go-loop-try> err-ch
-                  [{{{new-heads :heads} :op
+                  [{{{new-heads :heads
+                      new-commit-graph :commit-graph} :op
                      method :method}
                     :downstream :as pub
                     :keys [user crdt-id]} (<? pub-ch)
@@ -138,20 +141,29 @@
                   (let [suser (get-in @stage [:config :user])
                         cdvcs (or (get-in @stage [suser #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state])
                                   (key->crdt :cdvcs))
-                        {:keys [heads commit-graph]} (-downstream cdvcs pub)]
+                        {:keys [heads commit-graph] :as cdvcs} (-downstream cdvcs pub)]
                     (cond (not (and (= user suser)
                                     (= crdt-id  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5")))
-                          (recur (<? pub-ch) applied)
+                          (do (when-not (= user "eve@topiq.es")
+                                (.warn js/console "Received unexpected publication:" (pr-str pub)))
+                              (recur (<? pub-ch) applied))
+
+                          ;; TODO complicated merged case, recreate whole db for now
+                          (or (and (:lca-value @val-atom)
+                                   (= 1 (count heads)))
+                              (and (not (empty? (filter #(> (count %) 1) (vals new-commit-graph))))
+                                   (= 1 (count heads))))
+                          (let [db (<? (head-value store eval-fn cdvcs))]
+                            (reset! val-atom db)
+                            (recur (<? pub-ch) (set (keys commit-graph))))
 
                           (= 1 (count heads))
                           (let [txs (mapcat :transactions (<? (commit-history-values store commit-graph
-                                                                                     (first new-heads)
+                                                                                     (first heads)
                                                                                      :to-ignore (set applied))))]
                             (swap! val-atom
                                    #(reduce (partial trans-apply eval-fn)
-                                            (or (:lca-value %) ;; conflict, buggy in this case still
-                                                ;; misses commits between lca and merge
-                                                %)
+                                            %
                                             (filter (comp not empty?) txs)))
                             (recur (<? pub-ch) (set/union applied (keys commit-graph))))
 
@@ -159,6 +171,9 @@
                           (do
                             (reset! val-atom (<? (summarize-conflict store eval-fn cdvcs)))
                             (recur (<? pub-ch) applied)))))))
+
+
+
 
 
 (def state (atom {}))
@@ -214,6 +229,7 @@
 
              (reset! state {:val-atom val-atom
                             :hooks hooks
+                            :store store
                             :stage stage}))))
 
 
@@ -222,6 +238,11 @@
 (defn ^:export print-db []
   (let [{:keys [val-atom]} @state]
     (println (pr-str @val-atom))))
+
+;; debug
+(defn ^:export print-store []
+  (let [{:keys [store]} @state]
+    (println (pr-str store))))
 
 (defn ^:export read-db [db-str]
   (let [{:keys [stage]} @state]
