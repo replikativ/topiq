@@ -30,7 +30,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.2"]
+                 [io.replikativ/replikativ "0.1.3-SNAPSHOT"]
                  [markdown-clj "0.9.82"]]
 
 

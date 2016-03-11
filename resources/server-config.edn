@@ -3,5 +3,13 @@
  :proto "http"
  :port 8080
  :host "localhost" ;; adjust hostname
+ :user "mail:eve@topiq.es"
+ ;; only do this for CDVCS' you control and do it on one peer
+ ;; to avoid conflict management!
+ :hooks {[#".*"
+          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+         [["mail:eve@topiq.es"
+           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]}
+ :connect ["wss://more.topiq.es/replikativ/ws"]
  :trusted-hosts #{}
  }

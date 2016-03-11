@@ -21,10 +21,6 @@
             [replikativ.stage :as s]
             [full.async :refer [<?? <? go-try go-loop-try]]))
 
-
-(def server-state (atom nil))
-
-
 (deftemplate static-page
   (io/resource "public/index.html")
   []
@@ -35,17 +31,11 @@
   [:#bootstrap-js] (set-attr "src" "static/bootstrap/bootstrap-3.1.1-dist/js/bootstrap.min.js")
   [:#js-files] (substitute (html [:script {:src "js/main.js" :type "text/javascript"}])))
 
+(def config (-> "resources/server-config.edn" slurp read-string))
 
-(defn create-store
-  "Creates a konserve store"
-  [state]
-  (swap! state assoc :store (<?? #_(new-mem-store) (new-fs-store "store")))
-  state)
+(def store (<?? (new-mem-store) #_(new-fs-store "store")))
 
-(def hooks (atom {[#".*"
-                   #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                  [["eve@topiq.es"
-                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]}))
+(def hooks (atom (or (:hooks config) {})))
 
 (def err-ch (chan))
 
@@ -54,94 +44,47 @@
     (println "TOPIQ UNCAUGHT" e)
     (recur (<! err-ch))))
 
-(defn create-peer
-  "Creates replikativ server peer"
-  [state]
-  (let [{:keys [proto host port build tag-table store trusted-hosts]} @state
-        uri (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
-                 "://" host
-                 (when (= :dev build)
-                   (str ":" port))
-                 "/replikativ/ws")]
-    (swap! state assoc :peer
-           (<?? (server-peer store err-ch uri
-                             :middleware (comp (partial block-detector :server)
-                                               (partial fetch store (atom {}) err-ch)
-                                               (partial hook hooks store)
-                                               ensure-hash)))))
-  state)
+(def peer (let [{:keys [proto host port build trusted-hosts]} config
+                uri (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
+                         "://" host (when (= :dev build) (str ":" port)) "/replikativ/ws")]
+            (<?? (server-peer store err-ch uri
+                              :middleware (comp (partial block-detector :server)
+                                                (partial fetch store (atom {}) err-ch)
+                                                (partial hook hooks store)
+                                                ensure-hash)))))
+
+(def stage (<?? (s/create-stage! (:user config) peer err-ch)))
+
+(doseq [url (:connect config)]
+  (s/connect! stage url))
 
 (defroutes handler
   (resources "/")
 
-  (GET "/replikativ/ws" [] (-> @server-state :peer deref :volatile :handler))
+  (GET "/replikativ/ws" [] (-> @peer :volatile :handler))
 
-  (GET "/*" [] (if (= (:build @server-state) :prod)
+  (GET "/*" [] (if (= (:build config) :prod)
                  (static-page)
                  (io/resource "public/index.html"))))
 
-
-(defn read-config [state path]
-  (let [config (-> path slurp read-string)]
-    (swap! state merge config))
-  state)
-
-
-(defn init
-  "Read in config file, create sync store and peer"
-  [state path]
-  (-> state
-      (read-config path)
-      create-store
-      create-peer))
-
-
-(defn start-server [port]
-  (info (str "Starting server @ port " port))
-  (run-server (site #'handler) {:port port :join? false}))
-
-
 (defn -main [& args]
-  (init server-state (first args))
-  (info (clojure.pprint/pprint (dissoc @server-state :store :peer)))
-  (start-server (:port @server-state)))
+  (let [{:keys [port]} config]
+    (info (str "Starting server @ port " port))
+    (def server (run-server (site #'handler) {:port port :join? false}))))
 
 
 (comment
-  (read-config (atom {}) "resources/server-config.edn")
-
-  (init server-state "resources/server-config.edn")
-
-  (def server (start-server (:port @server-state)))
-
-  (server)
-
-  (<?? (k/get-in (:store @server-state) [:peer-config]))
+  (<?? (k/get-in store [:peer-config]))
 
   (def commit-eval {'(fn [_ new] new) (fn replace [old params] [params])
                     '(fn [old params] (d/db-with old params)) (fn [old params] (conj old params))})
 
   (require '[replikativ.crdt.cdvcs.realize :refer [commit-value commit-history-values]])
 
-
-  (<?? (commit-history-values (:store @server-state)
-                              (:commit-graph (:state (<?? (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
+  (<?? (commit-history-values store
+                              (:commit-graph (:state (<?? (k/get-in
+                              store [["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
                               #uuid "1699bb60-2ba4-5be1-908f-e00a03cfeef4"))
-
-
-  (require '[replikativ.crdt.materialize :refer [key->crdt]])
-
-
-  (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))
-
-  (:subscriptions @(:peer @server-state))
-
-  (count (keys (:causal-order (<!! (k/get-in (:store @server-state) [["eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))))
-
-  (count (keys (:causal-order (<!! (k/get-in (:store @server-state) [["foo@bar.com" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]])))))
-
-
-
 
 
 

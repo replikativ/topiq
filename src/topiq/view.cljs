@@ -66,8 +66,9 @@
    [:#login-user-input] (do-> (set-attr :value login-user-text)
                               (listen :on-change #(handle-text-change % owner :login-user-text)))
    [:#login-user-password] (set-attr :disabled true)
-   [:#modal-login-btn] (listen :on-click (fn [e] (set-navbar-user owner login-user-text)
-                                           (login-fn login-user-text)))
+   [:#modal-login-btn] (listen :on-click (fn [e]
+                                           (set-navbar-user owner (str "mail:" login-user-text))
+                                           (login-fn (str "mail:" login-user-text))))
    [:#register-user-input] (set-attr :disabled true)
    [:#register-user-password] (set-attr :disabled true)
    [:#forgot-user-input] (set-attr :disabled true)})
@@ -88,7 +89,7 @@
                          expose-links
                          render-content
                          html-content)
-   [:.argument-author] (content (:author argument))
+   [:.argument-author] (content (.replace (:author argument) "mail:" ""))
    [:.argument-ts] (content (compute-time-diff (:ts argument)))})
 
 (defsnippet topiq-vote-group "templates/topiqs.html" [:.topiq-vote-group]
@@ -113,7 +114,7 @@
                       #(clojure.string/replace %1 %2 (str "<a href='" %2 "' target='_blank'> link </a>"))
                       text
                       (map first (re-seq url-regexp text)))))
-   [:.topiq-author] (content (:author topiq))
+   [:.topiq-author] (content (.replace (:author topiq) "mail:" ""))
    [:.topiq-ts] (content (compute-time-diff (:ts topiq)))
    [:.topiq-vote-group] (substitute (topiq-vote-group (om/get-state owner :stage)
                                                       app
@@ -130,7 +131,8 @@
                       #(clojure.string/replace %1 %2 (str "<a href='" %2 "' target='_blank'> link </a>"))
                       text
                       (map first (re-seq url-regexp text)))))
-   [:.topiq-author] (content (:author (get-topiq (om/get-state owner :selected-topiq) app)))
+   [:.topiq-author] (content (.replace (:author (get-topiq (om/get-state owner :selected-topiq) app))
+                                       "mail:" ""))
    [:.topiq-ts] (content (compute-time-diff (:ts (get-topiq (om/get-state owner :selected-topiq) app))))
    [:#back-btn] (listen :on-click #(om/set-state! owner :selected-topiq nil))
    [:.arguments] (content (map topiq-argument (get-arguments (om/get-state owner :selected-topiq) app)))
