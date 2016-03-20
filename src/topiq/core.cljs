@@ -6,6 +6,7 @@
             [datascript.core :as d]
             [hasch.core :refer [uuid]]
             [kabel.middleware.block-detector :refer [block-detector]]
+            [kabel-auth.core :refer [auth]]
             [kioo.core :refer [handle-wrapper]]
             [kioo.om :refer [content set-attr do-> substitute listen]]
             [konserve.core :as k]
@@ -143,25 +144,39 @@
                       (atom (read-string "{#uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old)), #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-02-25T22:02:59.868-00:00\", :author \"mail:eve@topiq.es\", :crdt-refs #{}}, [\"mail:eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"156c2e83-3159-588f-a075-245e01a447a0\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" []}, :heads #{#uuid \"156c2e83-3159-588f-a075-245e01a447a0\"}, :version 1}}, #uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" (fn [_ new] new), #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, #uuid \"156c2e83-3159-588f-a075-245e01a447a0\" {:transactions [[#uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" #uuid \"334e2480-c2dc-5c26-8208-37274e1e7aca\"]], :ts #inst \"2016-02-25T22:03:03.762-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"mail:eve@topiq.es\", :crdt-refs #{}}}"))))
                  hooks (atom {})
                  val-atom (atom {})
+                 uri-str (str
+                          (if ssl?  "wss://" "ws://")
+                          (.getDomain uri)
+                          (when (= (.getDomain uri) "localhost")
+                            (str ":" 8080 #_(.getPort uri)))
+                          "/replikativ/ws")
+                 trusted-connections (atom #{(.getDomain uri) :replikativ.stage/stage})
+                 receiver-token-store (<? (new-mem-store))
+                 sender-token-store (<? (new-mem-store))
                  peer (<? (client-peer store err-ch
                                        :middleware (comp (partial block-detector :client-core)
                                                          (partial fetch store (atom {}) err-ch)
                                                          (partial hook hooks store)
+                                                         (partial auth trusted-connections
+                                                                  receiver-token-store
+                                                                  sender-token-store
+                                                                  (fn [{:keys [type]}]
+                                                                    (or ({:pub/downstream :auth} type)
+                                                                        :unrelated))
+                                                                  (fn [protocol user]
+                                                                    (when-not (= user "eve@topiq.es")
+                                                                      (js/alert (pr-str "Check your inbox:" protocol user))))
+                                                                  (fn [{:keys [user token protocol]}]
+                                                                    (when-not (= user "eve@topiq.es")
+                                                                      (.warn js/console "Cannot emit authentication requests from the browser. This should never happen! Please open a bug report!"))))
                                                          ensure-hash
                                                          (partial block-detector :client-surface))))
                  stage (<? (s/create-stage! "mail:eve@topiq.es" peer err-ch))]
              (stream-into-atom! stage ["mail:eve@topiq.es" cdvcs-id] eval-fn val-atom)
              (<? (s/subscribe-crdts! stage {"mail:eve@topiq.es" #{cdvcs-id}}))
 
-             ;; comment this out if you want to develop locally, e.g. with figwheel
-             (<? (s/connect!
-                  stage
-                  (str
-                   (if ssl?  "wss://" "ws://")
-                   (.getDomain uri)
-                   (when (= (.getDomain uri) "localhost")
-                     (str ":" 8080 #_(.getPort uri)))
-                   "/replikativ/ws")))
+             ;; comment this out if you want to develop offline, e.g. with figwheel
+             (<? (s/connect! stage uri-str))
 
              (om/root
               (partial navbar-view (partial login-fn stage hooks))

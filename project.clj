@@ -31,6 +31,8 @@
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
                  [io.replikativ/replikativ "0.1.3-SNAPSHOT"]
+                 [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
+                 [com.draines/postal "1.11.3"]
                  [markdown-clj "0.9.82"]]
 
 
