@@ -38,9 +38,7 @@
                     {:keys [protocol token user]}]
   (let [ext-tok (register-external-token token)
         body (str "Please visit: " proto "://"
-                  host (cond (and (= proto "http") (= port 80)) ""
-                             (and (= proto "https") (= port 443)) ""
-                             :else (str ":" port))
+                  host (when (= build :dev) (str ":" port))
                   "/auth/" ext-tok " to complete the authencation.")]
     (if-not (= protocol :mail)
       (warn "Cannot handle protocol" protocol " for " user)
@@ -81,9 +79,7 @@
         sender-token-store (<?? (new-mem-store))
         receiver-token-store (<?? (new-mem-store))
         uri (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
-                 "://" host (cond (and (= proto "http") (= port 80)) ""
-                                  (and (= proto "https") (= port 443)) ""
-                                  :else (str ":" port)) "/replikativ/ws")
+                 "://" host (when (= build :dev) (str ":" port)) "/replikativ/ws")
         peer (<?? (server-peer store err-ch uri
                                :middleware (comp (partial block-detector :server)
                                                  (partial fetch store (atom {}) err-ch)
