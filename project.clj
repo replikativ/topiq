@@ -15,10 +15,7 @@
                  [org.clojure/core.memoize "0.5.8" :exclusions [org.clojure/core.cache]]
                  [org.clojure/core.async "0.2.374"]
 
-                 [log4j/log4j "1.2.17" :exclusions [javax.mail/mail javax.jms/jms
-                                                    com.sun.jdmk/jmxtools com.sun.jmx/jmxri]]
-                 [org.slf4j/slf4j-log4j12 "1.7.13"]
-                 [org.clojure/tools.logging "0.3.1"]
+                 [com.fzakaria/slf4j-timbre "0.3.1"]
 
                  [ring "1.4.0"] ;; implicitly needed?
                  [com.cemerick/friend "0.2.1"]
@@ -30,7 +27,8 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
                  [io.replikativ/incognito "0.2.0-beta1"] ;; TODO why is this necessary?
-                 [io.replikativ/replikativ "0.1.3-SNAPSHOT"]
+                 [http.async.client "0.6.1"]
+                 [io.replikativ/replikativ "0.1.3"]
                  [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "1.11.3"]
                  [markdown-clj "0.9.82"]]
@@ -47,7 +45,7 @@
 
   :main topiq.core
 
-  :prep-tasks ["compile" ["cljsbuild" "once" "prod"]]
+  :prep-tasks ["compile" #_["cljsbuild" "once" "prod"]]
 
   :uberjar-name "topiq-standalone.jar"
 

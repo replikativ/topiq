@@ -119,20 +119,26 @@
 ;; necessary only for initial read below
 (read/register-tag-parser! 'replikativ.crdt.CDVCS map->CDVCS)
 
-(defn login-fn [stage hooks new-user]
-  (go-try> err-ch
-           (swap! hooks assoc ["mail:eve@topiq.es" cdvcs-id]
-                  [[new-user cdvcs-id]
-                   default-integrity-fn true])
-           (swap! stage assoc-in [:config :user] new-user)
-           (<? (sc/fork! stage ["mail:eve@topiq.es" cdvcs-id]))))
-
 
 (def state (atom {}))
 
-(defn ^:export main [& args]
+(defn ^:export main [track-user & args]
   (go-try> err-ch
-           (let [store
+           (let [mail-track-user (str "mail:" track-user)
+                 login-fn (fn [stage hooks new-user]
+                            (go-try> err-ch
+                                     ;; always track eve to ensure convergence
+                                     (swap! hooks assoc ["mail:eve@topiq.es" cdvcs-id]
+                                            [[new-user cdvcs-id]
+                                             default-integrity-fn true])
+                                     (swap! hooks assoc [track-user cdvcs-id]
+                                            [[new-user cdvcs-id]
+                                             default-integrity-fn true])
+                                     (swap! stage assoc-in [:config :user] new-user)
+                                     (<? (sc/fork! stage [mail-track-user cdvcs-id]))))
+
+
+                 store
                  ;; initialize the store in memory here for development processes
                  ;; we need to defer record instantiation until cljs load time,
                  ;; otherwise datascript and CDVCS are undefined for the clj
@@ -147,33 +153,35 @@
                  uri-str (str
                           (if ssl?  "wss://" "ws://")
                           (.getDomain uri)
-                          (when (= (.getDomain uri) "localhost")
-                            (str ":" 8080 #_(.getPort uri)))
+                          ":" (.getPort uri)
+                          #_(when (= (.getDomain uri) "localhost")
+                              (str ":" 8080 #_(.getPort uri)))
                           "/replikativ/ws")
-                 trusted-connections (atom #{(.getDomain uri) :replikativ.stage/stage})
+                 trusted-hosts (atom #{(.getDomain uri) :replikativ.stage/stage})
                  receiver-token-store (<? (new-mem-store))
                  sender-token-store (<? (new-mem-store))
                  peer (<? (client-peer store err-ch
                                        :middleware (comp (partial block-detector :client-core)
                                                          (partial fetch store (atom {}) err-ch)
                                                          (partial hook hooks store)
-                                                         (partial auth trusted-connections
+                                                         (partial auth
+                                                                  trusted-hosts
                                                                   receiver-token-store
                                                                   sender-token-store
                                                                   (fn [{:keys [type]}]
                                                                     (or ({:pub/downstream :auth} type)
                                                                         :unrelated))
                                                                   (fn [protocol user]
-                                                                    (when-not (= user "eve@topiq.es")
+                                                                    (when-not (= user track-user)
                                                                       (js/alert (pr-str "Check your inbox:" protocol user))))
                                                                   (fn [{:keys [user token protocol]}]
-                                                                    (when-not (= user "eve@topiq.es")
+                                                                    (when-not (= user track-user)
                                                                       (.warn js/console "Cannot emit authentication requests from the browser. This should never happen! Please open a bug report!"))))
                                                          ensure-hash
                                                          (partial block-detector :client-surface))))
-                 stage (<? (s/create-stage! "mail:eve@topiq.es" peer err-ch))]
-             (stream-into-atom! stage ["mail:eve@topiq.es" cdvcs-id] eval-fn val-atom)
-             (<? (s/subscribe-crdts! stage {"mail:eve@topiq.es" #{cdvcs-id}}))
+                 stage (<? (s/create-stage! mail-track-user peer err-ch))]
+             (stream-into-atom! stage [mail-track-user cdvcs-id] eval-fn val-atom)
+             (<? (s/subscribe-crdts! stage {mail-track-user #{cdvcs-id}}))
 
              ;; comment this out if you want to develop offline, e.g. with figwheel
              (<? (s/connect! stage uri-str))

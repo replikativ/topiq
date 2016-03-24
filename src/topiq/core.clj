@@ -4,7 +4,7 @@
                                         go go-loop put! close!] :as async]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.tools.logging :refer [info warn error debug]]
+            [kabel.platform-log :refer [info warn error debug]]
             [ring.util.response :as resp]
             [compojure.core :refer [GET POST routes]]
             [compojure.handler :refer [site api]]
@@ -158,13 +158,5 @@
                               (:commit-graph (:state (<?? (k/get-in
                                                            store [["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
                               #uuid "1699bb60-2ba4-5be1-908f-e00a03cfeef4"))
-
-  (fn [{:keys [protocol token user]}]
-    (let [ext-tok (register-external-token token)]
-      (send-message {:host "smtp.your-host.com"}
-                    {:from (str "no-reply@" host)
-                     :to user
-                     :subject (str "Please authenticate on " host)
-                     :body (str "Visit http://your-end-point/auth/" ext-tok)})))
 
   )

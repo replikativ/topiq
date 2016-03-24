@@ -10,7 +10,7 @@
           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
          [["mail:eve@topiq.es"
            #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]}
- :connect ["wss://more.topiq.es/replikativ/ws"]
+ :connect ["wss://topiq.es/replikativ/ws"]
  :mail-config {:host "smtp.topiq.es"}
- :trusted-hosts #{"more.topiq.es" "78.47.61.129"}
+ :trusted-hosts #{"topiq.es" "78.47.61.129"}
  }
