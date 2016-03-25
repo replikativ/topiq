@@ -101,7 +101,7 @@
                  (GET "/*" [] (if (= build :prod) (static-page) (io/resource "public/index.html"))))
         stage (<?? (s/create-stage! "none:dummy@localhost" peer err-ch))]
 
-    (doseq [url connect]
+    #_(doseq [url connect]
       (s/connect! stage url))
 
     {:store store
