@@ -155,7 +155,8 @@
                           (if ssl?  "wss://" "ws://")
                           (.getDomain uri)
                           ;; allow local figwheel (port 3449) + server (8080) configuration
-                          ":" (if (= (.getDomain uri) "localhost") 8080 (.getPort uri))
+                          (when-let [port (if (= (.getDomain uri) "localhost") 8080 (.getPort uri))]
+                            (str ":" port))
                           "/replikativ/ws")
                  trusted-hosts (atom #{(.getDomain uri) :replikativ.stage/stage})
                  receiver-token-store (<? (new-mem-store))
