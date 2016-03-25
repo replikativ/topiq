@@ -1,42 +1,43 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta title="generator" content="content" charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet" type="text/css">
+    <!--<link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet" type="text/css">-->
     <link id="bootstrap-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
     <link id="bootstrap-theme-css" rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"/>
     <link id="custom-css" rel="stylesheet" href="style.css"/>
+    <title>topiq</title>
   </head>
-  <title>topiq</title>
   <body>
-    <a href="https://github.com/kordano/topiq" target="_blank"><img style="position: absolute; top: 50; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
-
     <!-- modal dialog -->
     <div id="modal-container"></div>
     <!-- modal dialog end -->
 
     <!-- navbar -->
     <nav class="navbar navbar-default navbar-inverse" role="navigation" id="navbar">
-      <div class="container-fluid">
+      <div class="container-fluid"></div>
       <div class="navbar-header">
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#collapsed-navbar-group">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
         <a class="navbar-brand" href="#">topiq</a>
       </div>
       <div class="collapse navbar-collapse" id="collapsed-navbar-group">
       </div>
     </nav>
     <!-- navbar end -->
+    <a href="https://github.com/replikativ/topiq" target="_blank"><img style="position: absolute; top: 50; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+
 
     <!-- main container -->
     <div class="container col-md-6 col-md-offset-3" id="topiq-container">
       <h3>Loading, please hold on. </h3>
       You do not need to refresh, this web page reconnects automatically and tracks all state offline.
-      If you find any bugs, please report them <a href="https://github.com/kordano/topiq">here.</a></div>
+      If you find any bugs, please report them <a href="https://github.com/replikativ/topiq">here.</a></div>
     <!-- main container end -->
 
 
@@ -44,8 +45,8 @@
     <!-- javascript files -->
     <script id="jquery-js" src="//code.jquery.com/jquery-1.11.0.min.js" type="text/javascript"></script>
     <script id="bootstrap-js" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js" type="text/javascript"></script>
-    <script type="text/javascript" src="js/main.js"></script>
-    <script type="text/javascript">topiq.core.main("eve@topiq.es")</script>
+    <script id="main-js" type="text/javascript" src="js/main.js"></script>
+    <script id="init-js" type="text/javascript">topiq.core.main("eve@topiq.es")</script>
     <!-- javascript files end -->
 
   </body>

@@ -15,7 +15,7 @@
             [konserve.core :as k]
             [konserve.filestore :refer [new-fs-store]]
             [konserve.memory :refer [new-mem-store]]
-            [net.cgrand.enlive-html :refer [deftemplate set-attr substitute html] :as enlive]
+            [net.cgrand.enlive-html :refer [deftemplate template set-attr substitute html] :as enlive]
             [org.httpkit.server :refer [run-server]]
             [postal.core :refer [send-message]]
             [replikativ.p2p.fetch :refer [fetch]]
@@ -25,13 +25,6 @@
             [replikativ.stage :as s]
             [full.async :refer [<?? <? go-try go-loop-try]]))
 
-;; handle unhandled errors
-(def err-ch (chan))
-
-(go-loop [e (<! err-ch)]
-  (when e
-    (println "TOPIQ UNCAUGHT" e)
-    (recur (<! err-ch))))
 
 ;; handle authentication requests
 (defn auth-handler [{:keys [proto host port build mail-config]}
@@ -57,23 +50,23 @@
     (do
       (put! inbox-auth {:token token})
       (str "You have been authenticated on this peer."))
-    (do (str "Could find your authentication request.")
+    (do (str "Could not find your authentication request. It probably took too long, just retry.")
         (debug "Missed authentication for: " ext-token))))
-
-;; setup static page
-(deftemplate static-page
-  (io/resource "public/index.html")
-  []
-  [:#bootstrap-css] (set-attr "href" "static/bootstrap/bootstrap-3.1.1-dist/css/bootstrap.min.css")
-  [:#bootstrap-theme-css] (set-attr "href" "static/bootstrap/bootstrap-3.1.1-dist/css/bootstrap-theme.min.css")
-  [:#react-js] (set-attr "src" "static/react/react-0.9.0.min.js")
-  [:#jquery-js] (set-attr "src" "static/jquery/jquery-1.11.0.min.js")
-  [:#bootstrap-js] (set-attr "src" "static/bootstrap/bootstrap-3.1.1-dist/js/bootstrap.min.js")
-  [:#js-files] (substitute (html [:script {:src "js/main.js" :type "text/javascript"}])))
 
 (defn start [{:keys [proto host port user build
                      trusted-hosts connect hooks mail-config] :as config}]
-  (let [store (<?? #_(new-mem-store) (new-fs-store "store"))
+  (let [err-ch (chan)
+        _ (go-loop [e (<! err-ch)]
+            (when e
+              (error "TOPIQ UNCAUGHT" e)
+              ;; TODO make configurable
+              (send-message {:host "smtp.topiq.es"}
+                            {:from (str "error@" host)
+                             :to "topiq-errors@topiq.es"
+                             :subject (.getMessage e)
+                             :body (pr-str e)})
+              (recur (<! err-ch))))
+        store (<?? #_(new-mem-store) (new-fs-store "store"))
         hooks (atom (or hooks {}))
         trusted-hosts (atom trusted-hosts)
         sender-token-store (<?? (new-mem-store))
@@ -98,10 +91,16 @@
                  (resources "/")
                  (GET "/replikativ/ws" [] (-> @peer :volatile :handler))
                  (GET "/auth/:token" [token] (auth-token (java.util.UUID/fromString token)))
-                 (GET "/*" [] (if (= build :prod) (static-page) (io/resource "public/index.html"))))
-        stage (<?? (s/create-stage! "none:dummy@localhost" peer err-ch))]
+                 (GET "/*" []
+                      (template (io/resource "public/index.html") [_]
+                                [:#init-js] (substitute
+                                             (html [:script
+                                                    {:type "text/javascript"}
+                                                    ;; direct pass in config flags to the client atm.
+                                                    (str "topiq.core.main(\"" user "\")")])))))
+        stage (<?? (s/create-stage! user peer err-ch))]
 
-    #_(doseq [url connect]
+    (doseq [url connect]
       (s/connect! stage url))
 
     {:store store

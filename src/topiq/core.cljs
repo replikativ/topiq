@@ -33,6 +33,7 @@
 (def err-ch (chan))
 
 ;; Let errors pop up
+;; TODO route to server for tracking
 (go-loop [e (<! err-ch)]
   (when e
     (.error js/console "UNCAUGHT:" e)
@@ -122,9 +123,9 @@
 
 (defonce state (atom {}))
 
-(defn ^:export main [track-user & args]
+(defn ^:export main [full-user & args]
   (go-try> err-ch
-           (let [mail-track-user (str "mail:" track-user)
+           (let [[[_ _ track-user]] (re-seq #"(.+):(.+)" full-user)
                  login-fn (fn [stage hooks new-user]
                             (go-try> err-ch
                                      ;; always track eve to ensure convergence
@@ -135,7 +136,7 @@
                                             [[new-user cdvcs-id]
                                              default-integrity-fn true])
                                      (swap! stage assoc-in [:config :user] new-user)
-                                     (<? (sc/fork! stage [mail-track-user cdvcs-id]))))
+                                     (<? (sc/fork! stage [full-user cdvcs-id]))))
 
 
                  store
@@ -180,9 +181,9 @@
                                                                       (.warn js/console "Cannot emit authentication requests from the browser. This should never happen! Please open a bug report!"))))
                                                          ensure-hash
                                                          (partial block-detector :client-surface))))
-                 stage (<? (s/create-stage! mail-track-user peer err-ch))]
-             (stream-into-atom! stage [mail-track-user cdvcs-id] eval-fn val-atom)
-             (<? (s/subscribe-crdts! stage {mail-track-user #{cdvcs-id}}))
+                 stage (<? (s/create-stage! full-user peer err-ch))]
+             (stream-into-atom! stage [full-user cdvcs-id] eval-fn val-atom)
+             (<? (s/subscribe-crdts! stage {full-user #{cdvcs-id}}))
 
              ;; comment this out if you want to develop offline, e.g. with figwheel
              (<? (s/connect! stage uri-str))
