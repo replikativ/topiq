@@ -132,7 +132,7 @@
                                      (swap! hooks assoc ["mail:eve@topiq.es" cdvcs-id]
                                             [[new-user cdvcs-id]
                                              default-integrity-fn true])
-                                     (swap! hooks assoc [track-user cdvcs-id]
+                                     (swap! hooks assoc [full-user cdvcs-id]
                                             [[new-user cdvcs-id]
                                              default-integrity-fn true])
                                      (swap! stage assoc-in [:config :user] new-user)
@@ -149,7 +149,7 @@
                  ;; store is synchronized on connection
                  (<? (new-mem-store
                       (atom (read-string
-                             "{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" {:transactions [[#uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\"]], :ts #inst \"2016-03-25T00:58:25.113-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"mail:eve@topiq.es\", :crdt-refs #{}}, [\"mail:eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" []}, :heads #{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\"}, :version 1}}, #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-03-25T00:58:14.008-00:00\", :author \"mail:eve@topiq.es\", :crdt-refs #{}}, #uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" (fn [_ new] new), #uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old)), #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, :peer-config {:sub {:extend? false, :subscriptions {\"mail:eve@topiq.es\" #{#uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"}}}, :id #uuid \"ace4083b-5e42-495d-a2fa-a34e2d70e2f9\"}}"))))
+                             "{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" {:transactions [[#uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\"]], :ts #inst \"2016-03-25T00:58:25.113-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"mail:eve@topiq.es\", :crdt-refs #{}}, [\"mail:eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" []}, :heads #{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\"}, :version 1}}, #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-03-25T00:58:14.008-00:00\", :author \"mail:eve@topiq.es\", :crdt-refs #{}}, #uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" (fn [_ new] new), #uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old)), #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, :peer-config {:sub {:extend? false, :subscriptions {}}}, :id #uuid \"ace4083b-5e42-495d-a2fa-a34e2d70e2f9\"}}"))))
                  hooks (atom {})
                  val-atom (atom {})
                  uri-str (str
@@ -183,10 +183,12 @@
                                                          (partial block-detector :client-surface))))
                  stage (<? (s/create-stage! full-user peer err-ch))]
              (stream-into-atom! stage [full-user cdvcs-id] eval-fn val-atom)
-             (<? (s/subscribe-crdts! stage {full-user #{cdvcs-id}}))
 
              ;; comment this out if you want to develop offline, e.g. with figwheel
-             (<? (s/connect! stage uri-str))
+             ;; TODO use try connect and then build up CDVCS directly instead of embedded store
+             (s/connect! stage uri-str)
+
+             (<? (s/subscribe-crdts! stage {full-user #{cdvcs-id}}))
 
              (om/root
               (partial navbar-view (partial login-fn stage hooks))

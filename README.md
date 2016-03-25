@@ -3,7 +3,8 @@
 A social network application based on [P2P replication with CRDTs](https://github.com/replikativ/replikativ).
 
 Test p2p network at:
-- <https://topiq.es>.
+- <https://topiq.es>
+- <http://topiq.polyc0l0r.net:8080> (can only auth USER@topiq.es atm.)
 
 ## Usage
 
@@ -28,19 +29,18 @@ Edit the config settings:
  :behind-proxy false
  :proto "http"
  :port 8080
- :host "localhost" ;; hostname of the web-frontend
- ;; only extend this for CDVCS' you control and do it on one peer
- ;; to avoid conflict management! atm. one peer pulls into the global
- ;; CDVCS for eve
- ;; :hooks {}
- :connect ["wss://topiq.es/replikativ/ws"
-           "wss://more.topiq.es/replikativ/ws" ]
- ;; supplied to the library postal https://github.com/drewr/postal
- ;; have a look at their docs for details:
+ :host "localhost" ;; adjust hostname
+ :user "mail:eve@your-isp.com"
+ ;; only do this for CDVCS' you control and do it on one peer
+ ;; to avoid server-side conflict management!
+ :hooks {[#".*"
+          #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+         [["mail:eve@your-isp.com"
+           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]}
+ :connect ["wss://topiq.es/replikativ/ws"]
  :mail-config {:host "smtp.your-isp.com"}
- ;; peers you trust and which need no authentication to promote state changes
- :trusted-connections #{"wss://topiq.es/replikativ/ws"
-                        "wss://more.topiq.es/replikativ/ws"}}
+ :trusted-hosts #{"topiq.es" "78.47.61.129"}
+ }
 ~~~
 
 Build an `AOT`-compiled jar file:
@@ -49,6 +49,17 @@ Build an `AOT`-compiled jar file:
 git clone https://github.com/whilo/topiq
 lein uberjar # also compiles advanced cljs
 java -jar target/topiq-standalone.jar resources/server-config.edn
+~~~
+
+You probably also have to add the letsencrypt tool chain to your JDK
+with keytool. You can see this when you get connection errors with ssl
+for topiq.es.
+
+~~~bash
+wget https://letsencrypt.org/certs/isrgrootx1.pem
+wget https://letsencrypt.org/certs/letsencryptauthorityx1.der
+sudo keytool -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt -importcert -alias isrgrootx1 -file ~/isrgrootx1.pem
+sudo keytool -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt -importcert -alias letsencryptauthorityx1 -file ~/letsencryptauthorityx1.der
 ~~~
 
 ## TODO
