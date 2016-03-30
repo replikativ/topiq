@@ -9,7 +9,7 @@
 
   :source-paths ["src"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.7.228"]
+                 [org.clojure/clojurescript "1.8.34"]
                  [org.clojure/core.cache "0.6.4"]
                  ;; implicitly needed?
                  [org.clojure/core.memoize "0.5.8" :exclusions [org.clojure/core.cache]]
@@ -26,9 +26,7 @@
                  [datascript "0.15.0"]
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
-                 [io.replikativ/incognito "0.2.0-SNAPSHOT"] ;; TODO why is this necessary?
-                 [http.async.client "0.6.1"] ;; revert: allows bigger frame size for now
-                 [io.replikativ/replikativ "0.1.4-SNAPSHOT"]
+                 [io.replikativ/replikativ "0.1.4"]
                  [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "1.11.3"]
                  [markdown-clj "0.9.82"]]
