@@ -26,14 +26,14 @@
             [replikativ.stage :as s]
             [topiq.view :refer [topiqs navbar topiq-arguments]])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [full.cljs.async :refer [<<? <? go-for go-try go-try> go-loop-try go-loop-try> alt?]]))
+                   [full.async :refer [<<? <? go-try go-loop-try alt?]]))
 
 (enable-console-print!)
 
 (def err-ch (chan))
 
 ;; Let errors pop up
-;; TODO route to server for tracking
+;; TODO r#_oute to server for tracking
 (go-loop [e (<! err-ch)]
   (when e
     (.error js/console "UNCAUGHT:" e)
@@ -124,87 +124,90 @@
 (defonce state (atom {}))
 
 (defn ^:export main [full-user & args]
-  (go-try> err-ch
-           (let [[[_ _ track-user]] (re-seq #"(.+):(.+)" full-user)
-                 login-fn (fn [stage hooks new-user]
-                            (go-try> err-ch
-                                     ;; always track eve to ensure convergence
-                                     (swap! hooks assoc ["mail:eve@topiq.es" cdvcs-id]
-                                            [[new-user cdvcs-id]
-                                             default-integrity-fn true])
-                                     (swap! hooks assoc [full-user cdvcs-id]
-                                            [[new-user cdvcs-id]
-                                             default-integrity-fn true])
-                                     (swap! stage assoc-in [:config :user] new-user)
-                                     (<? (sc/fork! stage [full-user cdvcs-id]))))
+  (go-try
+   (let [[[_ _ track-user]] (re-seq #"(.+):(.+)" full-user)
+         val-atom (atom {})
+         login-fn (fn [stage hooks stream new-user]
+                    (go-try
+                     ;; always track eve to ensure convergence
+                     (swap! stream (fn [s-ch] (close! s-ch)
+                                     (reset! val-atom {})
+                                     (stream-into-atom! stage [new-user cdvcs-id] eval-fn val-atom)))
+                     (swap! hooks assoc ["mail:eve@topiq.es" cdvcs-id]
+                            [[new-user cdvcs-id]
+                             default-integrity-fn true])
+                     (swap! hooks assoc [full-user cdvcs-id]
+                            [[new-user cdvcs-id]
+                             default-integrity-fn true])
+                     (swap! stage assoc-in [:config :user] new-user)
+                     (<? (sc/fork! stage [full-user cdvcs-id]))))
 
 
-                 store
-                 ;; initialize the store in memory here for development processes
-                 ;; we need to defer record instantiation until cljs load time,
-                 ;; otherwise datascript and CDVCS are undefined for the clj
-                 ;; analyzer
+         store
+         ;; initialize the store in memory here for development processes
+         ;; we need to defer record instantiation until cljs load time,
+         ;; otherwise datascript and CDVCS are undefined for the clj
+         ;; analyzer
 
-                 ;; NOTE: this automagically works with the server as well, as the
-                 ;; store is synchronized on connection
-                 (<? (new-mem-store
-                      (atom (read-string
-                             "{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" {:transactions [[#uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\"]], :ts #inst \"2016-03-25T00:58:25.113-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"mail:eve@topiq.es\", :crdt-refs #{}}, [\"mail:eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" []}, :heads #{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\"}, :version 1}}, #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-03-25T00:58:14.008-00:00\", :author \"mail:eve@topiq.es\", :crdt-refs #{}}, #uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" (fn [_ new] new), #uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old)), #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, :peer-config {:sub {:extend? false, :subscriptions {}}}, :id #uuid \"ace4083b-5e42-495d-a2fa-a34e2d70e2f9\"}}"))))
-                 hooks (atom {})
-                 val-atom (atom {})
-                 uri-str (str
-                          (if ssl?  "wss://" "ws://")
-                          (.getDomain uri)
-                          ;; allow local figwheel (port 3449) + server (8080) configuration
-                          (when-let [port (if (= (.getDomain uri) "localhost") 8080 (.getPort uri))]
-                            (str ":" port))
-                          "/replikativ/ws")
-                 trusted-hosts (atom #{(.getDomain uri) :replikativ.stage/stage})
-                 receiver-token-store (<? (new-mem-store))
-                 sender-token-store (<? (new-mem-store))
-                 peer (<? (client-peer store err-ch
-                                       :middleware (comp (partial block-detector :client-core)
-                                                         (partial fetch store (atom {}) err-ch)
-                                                         (partial hook hooks store)
-                                                         (partial auth
-                                                                  trusted-hosts
-                                                                  receiver-token-store
-                                                                  sender-token-store
-                                                                  (fn [{:keys [type]}]
-                                                                    (or ({:pub/downstream :auth} type)
-                                                                        :unrelated))
-                                                                  (fn [protocol user]
-                                                                    (when-not (= user track-user)
-                                                                      (js/alert (pr-str "Check your inbox:" protocol user))))
-                                                                  (fn [{:keys [user token protocol]}]
-                                                                    (when-not (= user track-user)
-                                                                      (.warn js/console "Cannot emit authentication requests from the browser. This should never happen! Please open a bug report!"))))
-                                                         ensure-hash
-                                                         (partial block-detector :client-surface))))
-                 stage (<? (s/create-stage! full-user peer err-ch))]
-             (stream-into-atom! stage [full-user cdvcs-id] eval-fn val-atom)
+         ;; NOTE: this automagically works with the server as well, as the
+         ;; store is synchronized on connection
+         (<? (new-mem-store
+              (atom (read-string
+                     "{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" {:transactions [[#uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\"]], :ts #inst \"2016-03-25T00:58:25.113-00:00\", :parents [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], :crdt :cdvcs, :version 1, :author \"mail:eve@topiq.es\", :crdt-refs #{}}, [\"mail:eve@topiq.es\" #uuid \"26558dfe-59bb-4de4-95c3-4028c56eb5b5\"] {:crdt :cdvcs, :description nil, :public false, :state #replikativ.crdt.CDVCS{:commit-graph {#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\" [#uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\"], #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" []}, :heads #{#uuid \"18def922-76df-5ffb-95a3-09c19d68f9e2\"}, :version 1}}, #uuid \"3004b2bd-3dd9-5524-a09c-2da166ffad6a\" {:transactions [], :parents [], :crdt :cdvcs, :version 1, :ts #inst \"2016-03-25T00:58:14.008-00:00\", :author \"mail:eve@topiq.es\", :crdt-refs #{}}, #uuid \"0a560c8a-a1b6-5823-9955-8a6f111e4051\" (fn [_ new] new), #uuid \"3b0197ff-84da-57ca-adb8-94d2428c6227\" (fn store-blob-trans [old params] (if *custom-store-fn* (*custom-store-fn* old params) old)), #uuid \"19b0fda1-d2ca-52b4-88bd-5a176733b6c9\" #datascript/DB {:schema {:up-votes {:db/cardinality :db.cardinality/many}, :down-votes {:db/cardinality :db.cardinality/many}, :posts {:db/cardinality :db.cardinality/many}, :arguments {:db/cardinality :db.cardinality/many}, :hashtags {:db/cardinality :db.cardinality/many}}, :datoms []}, :peer-config {:sub {:extend? false, :subscriptions {}}}, :id #uuid \"ace4083b-5e42-495d-a2fa-a34e2d70e2f9\"}}"))))
+         hooks (atom {})
+         uri-str (str
+                  (if ssl?  "wss://" "ws://")
+                  (.getDomain uri)
+                  ;; allow local figwheel (port 3449) + server (8080) configuration
+                  (when-let [port (if (= (.getDomain uri) "localhost") 8080 (.getPort uri))]
+                    (str ":" port))
+                  "/replikativ/ws")
+         trusted-hosts (atom #{(.getDomain uri) :replikativ.stage/stage})
+         receiver-token-store (<? (new-mem-store))
+         sender-token-store (<? (new-mem-store))
+         peer (<? (client-peer store err-ch
+                               :middleware (comp (partial block-detector :client-core)
+                                                 (partial fetch store (atom {}) err-ch)
+                                                 (partial hook hooks store)
+                                                 (partial auth
+                                                          trusted-hosts
+                                                          receiver-token-store
+                                                          sender-token-store
+                                                          (fn [{:keys [type]}]
+                                                            (or ({:pub/downstream :auth} type)
+                                                                :unrelated))
+                                                          (fn [protocol user]
+                                                            (go-try
+                                                             (when-not (= user track-user)
+                                                               (js/alert (pr-str "Check your inbox:" protocol user)))))
+                                                          (fn [{:keys [user token protocol]}]
+                                                            (when-not (= user track-user)
+                                                              (.warn js/console "Cannot emit authentication requests from the browser. This should never happen! Please open a bug report!"))))
+                                                 ensure-hash
+                                                 (partial block-detector :client-surface))))
+         stage (<? (s/create-stage! full-user peer err-ch))
+         stream (atom (stream-into-atom! stage [full-user cdvcs-id] eval-fn val-atom))]
+     ;; comment this out if you want to develop offline, e.g. with figwheel
+     ;; TODO use try connect and then build up CDVCS directly instead of embedded store
+     (s/connect! stage uri-str)
 
-             ;; comment this out if you want to develop offline, e.g. with figwheel
-             ;; TODO use try connect and then build up CDVCS directly instead of embedded store
-             (s/connect! stage uri-str)
+     (<? (s/subscribe-crdts! stage {full-user #{cdvcs-id}}))
 
-             (<? (s/subscribe-crdts! stage {full-user #{cdvcs-id}}))
+     (om/root
+      (partial navbar-view (partial login-fn stage hooks stream))
+      nil
+      {:target (. js/document (getElementById "collapsed-navbar-group"))})
 
-             (om/root
-              (partial navbar-view (partial login-fn stage hooks))
-              nil
-              {:target (. js/document (getElementById "collapsed-navbar-group"))})
+     (om/root
+      (partial topiqs-view stage)
+      val-atom
+      {:target (. js/document (getElementById "topiq-container"))})
 
-             (om/root
-              (partial topiqs-view stage)
-              val-atom
-              {:target (. js/document (getElementById "topiq-container"))})
-
-             ;; capture state for REPL
-             (reset! state {:val-atom val-atom
-                            :hooks hooks
-                            :store store
-                            :stage stage}))))
+     ;; capture state for REPL
+     (reset! state {:val-atom val-atom
+                    :hooks hooks
+                    :store store
+                    :stage stage}))))
 
 
 
@@ -223,12 +226,12 @@
 
 (defn ^:export read-db [db-str]
   (let [{:keys [stage]} @state]
-    (go-try> err-ch
-             (.info js/console (<? (sc/transact stage ["mail:eve@topiq.es" cdvcs-id]
-                                                '(fn [old params] (d/db-with old params))
-                                                (mapv (fn [datom] (into [:db/add] datom))
-                                                      (read-string db-str)))))
-             (.info js/console (<? (sc/commit! stage {"mail:eve@topiq.es" #{cdvcs-id}}))))))
+    (go-try
+     (.info js/console (<? (sc/transact stage ["mail:eve@topiq.es" cdvcs-id]
+                                        '(fn [old params] (d/db-with old params))
+                                        (mapv (fn [datom] (into [:db/add] datom))
+                                              (read-string db-str)))))
+     (.info js/console (<? (sc/commit! stage {"mail:eve@topiq.es" #{cdvcs-id}}))))))
 
 
 (comment

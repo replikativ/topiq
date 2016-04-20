@@ -26,7 +26,7 @@
                  [datascript "0.15.0"]
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
-                 [io.replikativ/replikativ "0.1.4"]
+                 [io.replikativ/replikativ "0.1.5-SNAPSHOT"]
                  [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "1.11.3"]
                  [markdown-clj "0.9.82"]]
@@ -43,7 +43,7 @@
 
   :main topiq.core
 
-  :prep-tasks ["compile" ["cljsbuild" "once" "prod"]]
+;  :prep-tasks ["compile" ["cljsbuild" "once" "prod"]]
 
   :uberjar-name "topiq-standalone.jar"
 

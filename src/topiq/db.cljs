@@ -5,7 +5,7 @@
             [replikativ.crdt.cdvcs.stage :as s]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [full.cljs.async :refer [<<? <? go-for go-try go-try> go-loop-try go-loop-try> alt?]]))
+                   [full.async :refer [<<? <? go-try go-loop-try alt?]]))
 
 
 (def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S*)?")

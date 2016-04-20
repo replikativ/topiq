@@ -84,7 +84,9 @@
                                                           (fn [{:keys [type]}]
                                                             (or ({:pub/downstream :auth} type)
                                                                 :unrelated))
-                                                          #(warn "Unhandled auth triggered:" (pr-str %))
+                                                          (fn [protocol user]
+                                                            (go-try
+                                                             (warn "Unhandled auth triggered:" protocol user)))
                                                           (partial auth-handler config))
                                                  ensure-hash)))
         handler (routes
