@@ -4,8 +4,7 @@
             [hasch.core :refer [uuid]]
             [replikativ.crdt.cdvcs.stage :as s]
             [cljs.core.async :refer [put! chan <! >! alts! timeout close!] :as async])
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [full.async :refer [<<? <? go-try go-loop-try alt?]]))
+  (:require-macros [full.async :refer [<<? <? go-try go-loop-try alt?]]))
 
 
 (def url-regexp #"(https?|ftp)://[a-z0-9\u00a1-\uffff-]+(\.[a-z0-9\u00a1-\uffff-]+)+(:\d{2,5})?(/\S*)?")
@@ -27,6 +26,7 @@
                      0)]
     (- up-cnt down-cnt)))
 
+
 (defn- rank [{:keys [ts vote-count]}]
   (.exp js/Math (+ (/ (- ts (.getTime (js/Date.)))
                       ;; scale decay so we don't hit zero rank too quickly
@@ -34,6 +34,7 @@
                    (/ vote-count 100))))
 
 
+;; add argument count
 (defn get-topiqs [db]
   (let [qr (map (partial zipmap [:id :title #_:detail-url :detail-text :author :ts])
                 (d/q '[:find ?p ?title #_?durl ?dtext ?author ?ts
@@ -99,7 +100,7 @@
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
-    (go (<? (s/transact stage
+    (go-try (<? (s/transact stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat [(merge {:db/id -1
@@ -132,7 +133,7 @@
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
-    (go (<? (s/transact stage
+    (go-try (<? (s/transact stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
                         '(fn [old params] (d/db-with old params))
                         (concat
@@ -160,14 +161,14 @@
 (defn add-vote [stage topiq-id voter updown]
   (let [ts (js/Date.)]
     (when-not (= "Not logged in" voter)
-      (go (<? (s/transact stage
-                          [voter
-                           #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                          '(fn [old params] (d/db-with old params))
-                          [{:db/id -1
-                            :identity/id (uuid [voter topiq-id])
-                            :topiq topiq-id
-                            :voter voter
-                            :updown updown
-                            :ts ts}]))
-          (<? (s/commit! stage {voter #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))))
+      (go-try (<? (s/transact stage
+                              [voter
+                               #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                              '(fn [old params] (d/db-with old params))
+                              [{:db/id -1
+                                :identity/id (uuid [voter topiq-id])
+                                :topiq topiq-id
+                                :voter voter
+                                :updown updown
+                                :ts ts}]))
+              (<? (s/commit! stage {voter #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))))

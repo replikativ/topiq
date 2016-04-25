@@ -43,7 +43,7 @@
 
   :main topiq.core
 
-;  :prep-tasks ["compile" ["cljsbuild" "once" "prod"]]
+  :prep-tasks ["compile" ["cljsbuild" "once" "prod"]]
 
   :uberjar-name "topiq-standalone.jar"
 

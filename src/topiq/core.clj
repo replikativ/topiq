@@ -35,15 +35,16 @@
                   "/auth/" ext-tok " to complete the authencation.")]
     (if-not (= protocol :mail)
       (warn "Cannot handle protocol" protocol " for " user)
-      (try
-        (debug "mailing:" user body)
-        (send-message mail-config
-                      {:from (str "no-reply@" host)
-                       :to user
-                       :subject (str "Please authenticate on " host)
-                       :body body})
-        (catch Exception e
-          (debug "Could not send mail to " user ":" e))))))
+      (when-not (= user "eve@topiq.es")
+        (try
+          (debug "mailing:" user body)
+          (send-message mail-config
+                        {:from (str "no-reply@" host)
+                         :to user
+                         :subject (str "Please authenticate on " host)
+                         :body body})
+          (catch Exception e
+            (debug "Could not send mail to " user ":" e)))))))
 
 (defn auth-token [ext-token]
   (if-let [token (@external-tokens ext-token)]

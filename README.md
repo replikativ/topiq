@@ -62,12 +62,24 @@ sudo keytool -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -storep
 sudo keytool -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt -importcert -alias letsencryptauthorityx1 -file ~/letsencryptauthorityx1.der
 ~~~
 
+## Roadmap
+
+## 0.1.0 (first release)
+- build test network
+- fix HTML
+- Use dialogs for authentication
+- improve datascript queries and understanding, e.g. rank & sort in datascript
+- escape topiq text
+- Allow time travel
+- show only recent entries (how?), dynamically load more content
+
+## 0.2.0
+- partition state space to allow embedding in different contexts
+- make layout embeddable as comment stream
+- better editor for markdown: ProseMirror?
+
 ## TODO
 
-- build test network
-- better editor for markdown
-- improve datascript queries and understanding, e.g. rank & sort in datascript
-- make layout embeddable as comment stream
 - organized in a discourse/conversation (branch?), e.g. private
   conversation "discourse" for each friend as "messaging"
 - support search by hash-tag, user
@@ -76,8 +88,7 @@ sudo keytool -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -storep
 
 ## The MIT License (MIT)
 
-Copyright © 2014-2016 Christian Weilbach
-Copyright © 2014-2015 Konrad Kühne
+Copyright © 2014-2016 Christian Weilbach, Konrad Kühne
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
