@@ -80,6 +80,8 @@ sudo keytool -trustcacerts -keystore $JAVA_HOME/jre/lib/security/cacerts -storep
 
 ## TODO
 
+- remove navbar
+- use try for connect and then build up CDVCS directly instead of embedded store
 - organized in a discourse/conversation (branch?), e.g. private
   conversation "discourse" for each friend as "messaging"
 - support search by hash-tag, user
