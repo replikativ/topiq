@@ -26,7 +26,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
 
-                 [io.replikativ/full.async "0.9.1.2-SNAPSHOT"]
+                 [io.replikativ/full.async "0.9.1.3-SNAPSHOT"]
                  [io.replikativ/replikativ "0.2.0-SNAPSHOT"]
                  [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "1.11.3"]
