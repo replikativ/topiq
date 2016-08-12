@@ -18,7 +18,6 @@
                  [com.fzakaria/slf4j-timbre "0.3.1"]
 
                  [ring "1.4.0"] ;; implicitly needed?
-                 [com.cemerick/friend "0.2.1"]
                  [enlive "1.1.6"]
                  [compojure "1.4.0"]
 
@@ -26,7 +25,9 @@
                  [datascript "0.15.0"]
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.1"]
-                 [io.replikativ/replikativ "0.1.5-SNAPSHOT"]
+
+                 [io.replikativ/full.async "0.9.1.1-SNAPSHOT"]
+                 [io.replikativ/replikativ "0.2.0-SNAPSHOT"]
                  [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "1.11.3"]
                  [markdown-clj "0.9.82"]]

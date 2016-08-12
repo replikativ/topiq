@@ -56,27 +56,16 @@
 
 (defn start [{:keys [proto host port user build
                      trusted-hosts connect hooks mail-config] :as config}]
-  (let [err-ch (chan)
-        _ (go-loop [e (<! err-ch)]
-            (when e
-              (error "TOPIQ UNCAUGHT" e)
-              ;; TODO make configurable
-              (send-message {:host "smtp.topiq.es"}
-                            {:from (str "error@" host)
-                             :to "topiq-errors@topiq.es"
-                             :subject (.getMessage e)
-                             :body (pr-str e)})
-              (recur (<! err-ch))))
-        store (<?? #_(new-mem-store) (new-fs-store "store"))
+  (let [store (<?? #_(new-mem-store) (new-fs-store "store"))
         hooks (atom (or hooks {}))
         trusted-hosts (atom trusted-hosts)
         sender-token-store (<?? (new-mem-store))
         receiver-token-store (<?? (new-mem-store))
         uri (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
-                 "://" host (when (= build :dev) (str ":" port)) "/replikativ/ws")
-        peer (<?? (server-peer store err-ch uri
+                "://" host (when (= build :dev) (str ":" port)) "/replikativ/ws")
+        peer (<?? (server-peer store uri
                                :middleware (comp (partial block-detector :server)
-                                                 (partial fetch store (atom {}) err-ch)
+                                                 (partial fetch store (atom {}))
                                                  (partial hook hooks store)
                                                  (partial auth
                                                           trusted-hosts
@@ -101,7 +90,7 @@
                                                     {:type "text/javascript"}
                                                     ;; direct pass in config flags to the client atm.
                                                     (str "topiq.core.main(\"" user "\")")])))))
-        stage (<?? (s/create-stage! user peer err-ch))]
+        stage (<?? (s/create-stage! user peer))]
 
     (doseq [url connect]
       (s/connect! stage url))
@@ -121,12 +110,12 @@
   (server))
 
 
-(defn -main [path]
+(defn -main [path & args]
   (let [{:keys [port] :as config} (-> (or path "resources/server-config.edn")
                                       slurp
                                       read-string)]
-    (info (str "Starting server @ port " port))
-    (def state (start config))))
+    (info (str "Starting server @ port " port " with config " path))
+    (defonce state (start config))))
 
 (comment
   (-main "resources/server-config.edn")
@@ -158,7 +147,7 @@
 
   (<?? (commit-history-values store
                               (:commit-graph (:state (<?? (k/get-in
-                                                           store [["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
+                                                           (:store state) [["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
                               #uuid "1699bb60-2ba4-5be1-908f-e00a03cfeef4"))
 
   )

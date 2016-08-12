@@ -100,30 +100,29 @@
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
-    (go-try (<? (s/transact stage
+    (go-try (<? (s/transact! stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                        '(fn [old params] (d/db-with old params))
-                        (concat [(merge {:db/id -1
-                                         :identity/id post-id
-                                         :title (let [sub (str (apply str (take 160 text)))]
-                                                  (if (< (count sub) 160) sub
-                                                      (str sub "...")))
-                                         :detail-text  text
-                                         :author author
-                                         :ts ts}
-                                        (when-let [u (first urls)]
-                                          {:detail-url u}))]
-                                (map (fn [t] {:db/id -1
-                                             :identity/id (uuid)
-                                             :post post-id
-                                             :tag (keyword t)
-                                             :ts ts}) hash-tags)
-                                (map (fn [u] {:db/id -1
-                                             :identity/id (uuid)
-                                             :post post-id
-                                             :url u
-                                             :ts ts}) urls))))
-        (<? (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
+                        [['(fn [old params] (d/db-with old params))
+                          (concat [(merge {:db/id -1
+                                           :identity/id post-id
+                                           :title (let [sub (str (apply str (take 160 text)))]
+                                                    (if (< (count sub) 160) sub
+                                                        (str sub "...")))
+                                           :detail-text  text
+                                           :author author
+                                           :ts ts}
+                                          (when-let [u (first urls)]
+                                            {:detail-url u}))]
+                                  (map (fn [t] {:db/id -1
+                                                :identity/id (uuid)
+                                                :post post-id
+                                                :tag (keyword t)
+                                                :ts ts}) hash-tags)
+                                  (map (fn [u] {:db/id -1
+                                                :identity/id (uuid)
+                                                :post post-id
+                                                :url u
+                                                :ts ts}) urls))]])))))
 
 
 (defn add-argument [stage author post-id text]
@@ -133,42 +132,40 @@
         urls (->> text
                   (re-seq url-regexp)
                   (map first))]
-    (go-try (<? (s/transact stage
+    (go-try (<? (s/transact! stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                        '(fn [old params] (d/db-with old params))
-                        (concat
-                         [{:db/id -1
-                           :identity/id argument-id
-                           :post post-id
-                           :content text
-                           :author author
-                           :ts ts}]
-                         (map (fn [t]
-                                {:db/id -1
-                                 :identity/id (uuid)
-                                 :argument argument-id
-                                 :tag (keyword t)
-                                 :ts ts})
-                              hash-tags)
-                         (map (fn [u] {:db/id -1
-                                      :identity/id (uuid)
-                                      :post post-id
-                                      :url u
-                                      :ts ts}) urls))))
-        (<? (s/commit! stage {author #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}})))))
+                        [['(fn [old params] (d/db-with old params))
+                          (concat
+                           [{:db/id -1
+                             :identity/id argument-id
+                             :post post-id
+                             :content text
+                             :author author
+                             :ts ts}]
+                           (map (fn [t]
+                                  {:db/id -1
+                                   :identity/id (uuid)
+                                   :argument argument-id
+                                   :tag (keyword t)
+                                   :ts ts})
+                                hash-tags)
+                           (map (fn [u] {:db/id -1
+                                         :identity/id (uuid)
+                                         :post post-id
+                                         :url u
+                                         :ts ts}) urls))]])))))
 
 
 (defn add-vote [stage topiq-id voter updown]
   (let [ts (js/Date.)]
     (when-not (= "Not logged in" voter)
-      (go-try (<? (s/transact stage
+      (go-try (<? (s/transact! stage
                               [voter
                                #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                              '(fn [old params] (d/db-with old params))
-                              [{:db/id -1
-                                :identity/id (uuid [voter topiq-id])
-                                :topiq topiq-id
-                                :voter voter
-                                :updown updown
-                                :ts ts}]))
-              (<? (s/commit! stage {voter #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))))
+                              [['(fn [old params] (d/db-with old params))
+                                [{:db/id -1
+                                  :identity/id (uuid [voter topiq-id])
+                                  :topiq topiq-id
+                                  :voter voter
+                                  :updown updown
+                                  :ts ts}]]]))))))

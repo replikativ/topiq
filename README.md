@@ -1,4 +1,4 @@
-# Topiq
+# topiq
 
 A social network application based on [P2P replication with CRDTs](https://github.com/replikativ/replikativ).
 

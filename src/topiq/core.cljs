@@ -30,16 +30,6 @@
 
 (enable-console-print!)
 
-(def err-ch (chan))
-
-;; Let errors pop up
-;; TODO r#_oute to server for tracking
-(go-loop [e (<! err-ch)]
-  (when e
-    (.error js/console "UNCAUGHT:" e)
-    (js/alert (str "Ooops: " e))
-    (recur (<! err-ch))))
-
 (def uri (goog.Uri. js/location.href))
 
 (def cdvcs-id #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5")
@@ -102,11 +92,6 @@
                 (sc/merge! stage [user cdvcs-id] (:heads val))
                 (omdom/h3 nil (str "Resolving conflicts... please wait. ")))
 
-              (= (type val) replikativ.crdt.cdvcs.stage/Abort) ;; TODO check reapply
-              (do
-                (sc/transact stage [user cdvcs-id] (:aborted val))
-                (omdom/div nil (str "Retransacting your changes on new value... " (:aborted val))))
-
               (isa? (type val) js/Error)
               (omdom/div {:style "color:red"} (pr-str val))
 
@@ -165,9 +150,9 @@
          trusted-hosts (atom #{(.getDomain uri) :replikativ.stage/stage})
          receiver-token-store (<? (new-mem-store))
          sender-token-store (<? (new-mem-store))
-         peer (<? (client-peer store err-ch
+         peer (<? (client-peer store 
                                :middleware (comp (partial block-detector :client-core)
-                                                 (partial fetch store (atom {}) err-ch)
+                                                 (partial fetch store (atom {}))
                                                  (partial hook hooks store)
                                                  (partial auth
                                                           trusted-hosts
@@ -185,7 +170,7 @@
                                                               (.warn js/console "Cannot emit authentication requests from the browser. This should never happen! Please open a bug report!"))))
                                                  ensure-hash
                                                  (partial block-detector :client-surface))))
-         stage (<? (s/create-stage! full-user peer err-ch))
+         stage (<? (s/create-stage! full-user peer))
          stream (atom (stream-into-atom! stage [full-user cdvcs-id] eval-fn val-atom))]
      ;; comment this out if you want to develop offline, e.g. with figwheel
      ;; TODO use try connect and then build up CDVCS directly instead of embedded store
@@ -227,11 +212,10 @@
 (defn ^:export read-db [db-str]
   (let [{:keys [stage]} @state]
     (go-try
-     (.info js/console (<? (sc/transact stage ["mail:eve@topiq.es" cdvcs-id]
-                                        '(fn [old params] (d/db-with old params))
-                                        (mapv (fn [datom] (into [:db/add] datom))
-                                              (read-string db-str)))))
-     (.info js/console (<? (sc/commit! stage {"mail:eve@topiq.es" #{cdvcs-id}}))))))
+     (.info js/console (<? (sc/transact! stage ["mail:eve@topiq.es" cdvcs-id]
+                                         [['(fn [old params] (d/db-with old params))
+                                           (mapv (fn [datom] (into [:db/add] datom))
+                                                 (read-string db-str))]]))))))
 
 
 (comment
@@ -261,23 +245,21 @@
                 :hashtags {:db/cardinality :db.cardinality/many}}
         conn   (d/create-conn schema)]
     (go
-      (<! (sc/transact (:stage @state) ["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                       '(fn [_ new] new)
-                       @conn))
-      (<! (sc/commit! (:stage @state) {"mail:eve@topiq.es" #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))))
+      (<! (sc/transact! (:stage @state) ["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                        [['(fn [_ new] new)
+                          @conn]]))))
 
 
   (go
     (let [start (js/Date.)]
       (doseq [i (range 1e1)]
-        (<! (sc/transact stage ["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                         '(fn [old params] (d/db-with old params))
-                         [{:db/unique-identity [:item/id (uuid)]
-                           :title (str i)
-                           :detail-text  (str i)
-                           :author "benchmark@topiq.es"
-                           :ts (js/Date.)}]))
-        (<! (sc/commit! stage {"mail:eve@topiq.es" #{#uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"}}))
+        (<! (sc/transact! stage ["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                          [['(fn [old params] (d/db-with old params))
+                            [{:db/unique-identity [:item/id (uuid)]
+                              :title (str i)
+                              :detail-text  (str i)
+                              :author "benchmark@topiq.es"
+                              :ts (js/Date.)}]]]))
         (<! (timeout 100)))
       (def benchmark (- (js/Date.) start))))
 
