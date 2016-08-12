@@ -154,7 +154,7 @@
                                :middleware (comp (partial block-detector :client-core)
                                                  (partial fetch store (atom {}))
                                                  (partial hook hooks store)
-                                                 (partial auth
+                                                 #_(partial auth
                                                           trusted-hosts
                                                           receiver-token-store
                                                           sender-token-store
