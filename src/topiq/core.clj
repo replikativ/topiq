@@ -11,7 +11,7 @@
             [compojure.route :refer [resources]]
             [kabel.middleware.block-detector :refer [block-detector]]
             [kabel-auth.core :refer [auth inbox-auth register-external-token external-tokens]]
-            [kabel.platform :as plat]
+            [kabel.http-kit :as plat]
             [konserve.core :as k]
             [konserve.filestore :refer [new-fs-store]]
             [konserve.memory :refer [new-mem-store]]
@@ -65,8 +65,8 @@
                 "://" host (when (= build :dev) (str ":" port)) "/replikativ/ws")
         peer (<?? (server-peer store uri
                                :middleware (comp (partial block-detector :server)
-                                                 (partial fetch store (atom {}))
-                                                 (partial hook hooks store)
+                                                 fetch
+                                                 (partial hook hooks)
                                                  #_(partial auth
                                                           trusted-hosts
                                                           receiver-token-store
