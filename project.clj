@@ -9,38 +9,37 @@
 
   :source-paths ["src"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.8.34"]
-                 [org.clojure/core.cache "0.6.4"]
+                 [org.clojure/clojurescript "1.8.51"]
+                 [org.clojure/core.cache "0.6.5"]
                  ;; implicitly needed?
-                 [org.clojure/core.memoize "0.5.8" :exclusions [org.clojure/core.cache]]
-                 [org.clojure/core.async "0.2.374"]
+                 [org.clojure/core.memoize "0.5.9" :exclusions [org.clojure/core.cache]]
 
-                 [com.fzakaria/slf4j-timbre "0.3.1"]
+                 [com.fzakaria/slf4j-timbre "0.3.2"]
 
-                 [ring "1.4.0"] ;; implicitly needed?
+                 [ring "1.5.0"] ;; implicitly needed?
                  [enlive "1.1.6"]
-                 [compojure "1.4.0"]
+                 [compojure "1.5.1"]
 
                  [domina "1.0.3"]
-                 [datascript "0.15.0"]
+                 [datascript "0.15.4"]
                  [org.omcljs/om "0.9.0"]
-                 [kioo "0.4.1"]
+                 [kioo "0.4.2"]
 
-                 [io.replikativ/full.async "0.9.1.3-SNAPSHOT"]
                  [io.replikativ/replikativ "0.2.0-SNAPSHOT"]
-                 [io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
-                 [com.draines/postal "1.11.3"]
-                 [markdown-clj "0.9.82"]]
+                 #_[io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
+                 [com.draines/postal "2.0.1"]
+                 [org.clojars.scsibug/feedparser-clj "0.5.0"]
+                 [markdown-clj "0.9.90"]]
 
 
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.2.1"]]
                    :figwheel {:nrepl-port 7888
-                              :nrepl-middleware ["cider.nrepl/cider-middleware"
+                              #_:nrepl-middleware #_["cider.nrepl/cider-middleware"
                                                  "cemerick.piggieback/wrap-cljs-repl"]}
-                   :plugins [[lein-figwheel "0.5.0-2"]]}
+                   :plugins [[lein-figwheel "0.5.8"]]}
              :uberjar {:aot :all}}
 
-  :plugins [[lein-cljsbuild "1.1.2"]]
+  :plugins [[lein-cljsbuild "1.1.4"]]
 
   :main topiq.core
 
@@ -50,7 +49,6 @@
 
 
   :figwheel {:http-server-root "public"
-             :port 3449
              :css-dirs ["resources/public/css"]}
 
   :clean-targets ^{:protect false} ["target" "resources/public/js"]
@@ -69,11 +67,13 @@
     :dev {:source-paths ["src"]
           :compiler
           {:main topiq.core
-           :output-to "resources/public/js/main.js"
-           :optimizations :simple
+           :output-to "resources/public/js/dev/main.js"
+           :output-dir "resources/public/js/dev/out"
+           :optimizations :none
            :pretty-print true}}
     :prod {:source-paths ["src"]
            :compiler
            {:main topiq.core
-            :output-to "resources/public/js/main.js"
+            :output-to "resources/public/js/prod/main.js"
+            :output-dir "resources/public/js/prod/out"
             :optimizations :advanced}}}})

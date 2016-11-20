@@ -10,8 +10,8 @@
             [compojure.handler :refer [site api]]
             [compojure.route :refer [resources]]
             [kabel.middleware.block-detector :refer [block-detector]]
-            [kabel-auth.core :refer [auth inbox-auth register-external-token external-tokens]]
-            [kabel.http-kit :as plat]
+            #_[kabel-auth.core :refer [auth inbox-auth register-external-token external-tokens]]
+            [kabel.peer :as peer]
             [konserve.core :as k]
             [konserve.filestore :refer [new-fs-store]]
             [konserve.memory :refer [new-mem-store]]
@@ -23,11 +23,15 @@
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.stage :as s]
-            [full.async :refer [<?? <? go-try go-loop-try]]))
+            [feedparser-clj.core :as feed]
+            [superv.async :refer [<?? <? go-try go-loop-try S]]))
+
+
+#_(def f (feed/parse-feed "http://gregheartsfield.com/atom.xml"))
 
 
 ;; handle authentication requests
-(defn auth-handler [{:keys [proto host port build mail-config]}
+#_(defn auth-handler [{:keys [proto host port build mail-config]}
                     {:keys [protocol token user]}]
   (let [ext-tok (register-external-token token)
         body (str "Please visit: " proto "://"
@@ -46,7 +50,7 @@
           (catch Exception e
             (debug "Could not send mail to " user ":" e)))))))
 
-(defn auth-token [ext-token]
+#_(defn auth-token [ext-token]
   (if-let [token (@external-tokens ext-token)]
     (do
       (put! inbox-auth {:token token})
@@ -56,14 +60,14 @@
 
 (defn start [{:keys [proto host port user build
                      trusted-hosts connect hooks mail-config] :as config}]
-  (let [store (<?? #_(new-mem-store) (new-fs-store "store"))
+  (let [store (<?? S #_(new-mem-store) (new-fs-store "store"))
         hooks (atom (or hooks {}))
         trusted-hosts (atom trusted-hosts)
-        sender-token-store (<?? (new-mem-store))
-        receiver-token-store (<?? (new-mem-store))
+        sender-token-store (<?? S (new-mem-store))
+        receiver-token-store (<?? S (new-mem-store))
         uri (str (if (= proto "https") "wss" "ws") ;; should always be wss with auth
                 "://" host (when (= build :dev) (str ":" port)) "/replikativ/ws")
-        peer (<?? (server-peer store uri
+        peer (<?? S (server-peer S store uri
                                :middleware (comp (partial block-detector :server)
                                                  fetch
                                                  (partial hook hooks)
@@ -82,7 +86,7 @@
         handler (routes
                  (resources "/")
                  (GET "/replikativ/ws" [] (-> @peer :volatile :handler))
-                 (GET "/auth/:token" [token] (auth-token (java.util.UUID/fromString token)))
+                 #_(GET "/auth/:token" [token] (auth-token (java.util.UUID/fromString token)))
                  (GET "/*" []
                       (template (io/resource "public/index.html") [_]
                                 [:#init-js] (substitute
@@ -90,7 +94,7 @@
                                                     {:type "text/javascript"}
                                                     ;; direct pass in config flags to the client atm.
                                                     (str "topiq.core.main(\"" user "\")")])))))
-        stage (<?? (s/create-stage! user peer))]
+        stage (<?? S (s/create-stage! user peer))]
 
     (doseq [url connect]
       (s/connect! stage url))
@@ -106,7 +110,7 @@
      :server (run-server (site handler) {:port port :join? false})}))
 
 (defn stop [{:keys [peer server]}]
-  (plat/stop peer)
+  (<?? S (peer/stop peer))
   (server))
 
 
@@ -145,9 +149,12 @@
 
   (require '[replikativ.crdt.cdvcs.realize :refer [commit-value commit-history-values]])
 
-  (<?? (commit-history-values store
-                              (:commit-graph (:state (<?? (k/get-in
+  (<?? S (commit-history-values store
+                              (:commit-graph (:state (<?? S (k/get-in
                                                            (:store state) [["mail:eve@topiq.es" #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]]))))
                               #uuid "1699bb60-2ba4-5be1-908f-e00a03cfeef4"))
 
   )
+
+
+
