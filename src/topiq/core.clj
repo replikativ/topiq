@@ -23,11 +23,8 @@
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.stage :as s]
-            [feedparser-clj.core :as feed]
             [superv.async :refer [<?? <? go-try go-loop-try S]]))
 
-
-#_(def f (feed/parse-feed "http://gregheartsfield.com/atom.xml"))
 
 
 ;; handle authentication requests

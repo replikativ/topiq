@@ -28,7 +28,6 @@
                  [io.replikativ/replikativ "0.2.0-SNAPSHOT"]
                  #_[io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "2.0.1"]
-                 [org.clojars.scsibug/feedparser-clj "0.5.0"]
                  [markdown-clj "0.9.90"]]
 
 
