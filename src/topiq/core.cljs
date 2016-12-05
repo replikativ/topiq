@@ -39,10 +39,10 @@
 
 (def ^:dynamic eval-fn {'(fn [old params] (d/db-with old params))
                         (fn [old params]
-                          (when-not old
+                          (when-not @old
                             (let [schema {:identity/id {:db/unique :db.unique/identity}}
                                   conn   (d/create-conn schema)]
-                              (reset! old  @conn)))
+                              (reset! old @conn)))
                           (swap! old d/db-with params)
                           old)})
 
