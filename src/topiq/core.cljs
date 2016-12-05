@@ -39,6 +39,10 @@
 
 (def ^:dynamic eval-fn {'(fn [old params] (d/db-with old params))
                         (fn [old params]
+                          (when-not old
+                            (let [schema {:identity/id {:db/unique :db.unique/identity}}
+                                  conn   (d/create-conn schema)]
+                              (reset! old  @conn)))
                           (swap! old d/db-with params)
                           old)})
 
@@ -104,9 +108,7 @@
 (defn ^:export main [full-user & args]
   (go-try S
    (let [[[_ _ track-user]] (re-seq #"(.+):(.+)" full-user)
-         val-atom (atom (let [schema {:identity/id {:db/unique :db.unique/identity}}
-                              conn   (d/create-conn schema)]
-                          @conn))
+         val-atom (atom nil)
          login-fn (fn [stage hooks stream new-user]
                     (go-try S
                      ;; NOTE: always track eve to ensure convergence

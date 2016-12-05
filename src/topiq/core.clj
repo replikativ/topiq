@@ -122,7 +122,21 @@
   (-main "resources/server-config.edn")
   (stop state)
 
+  (require '[replikativ.crdt.cdvcs.stage :as cs])
+
   (:config state)
+
+  (get-in @(:stage state) ["mail:eve@topiq.es"
+                        #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5" :state :heads])
+
+  (<?? S (cs/create-cdvcs! (:stage state) :id  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"))
+
+  (<?? S (cs/merge! (:stage state) ["mail:eve@topiq.es"
+                                    #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
+                    (vec (get-in @(:stage state) ["mail:eve@topiq.es"
+                                                  #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"
+                                                  :state :heads]))))
+
 
 
   (let [host "localhost"
