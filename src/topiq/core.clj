@@ -92,7 +92,7 @@
                                                         {:type "text/javascript"}
                                                         ;; direct pass in config flags to the client atm.
                                                         (str "topiq.core.main(\"" user "\")")])))))
-                    (wrap-cors :access-control-allow-origin [#"http://localhost:3449"]
+                    #_(wrap-cors :access-control-allow-origin [#"http://localhost:3449"]
                                #_[#"http://localhost:3449/.*" #".*"]
                                :access-control-allow-methods [:get :put :post :delete
                                                               :upgrade]))
