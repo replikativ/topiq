@@ -23,6 +23,7 @@
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.stage :as s]
+            [ring.middleware.cors :refer [wrap-cors]]
             [superv.async :refer [<?? <? go-try go-loop-try S]]))
 
 
@@ -80,17 +81,21 @@
                                                              (warn "Unhandled auth triggered:" protocol user)))
                                                           (partial auth-handler config))
                                                  ensure-hash)))
-        handler (routes
-                 (resources "/")
-                 (GET "/replikativ/ws" [] (-> @peer :volatile :handler))
-                 #_(GET "/auth/:token" [token] (auth-token (java.util.UUID/fromString token)))
-                 (GET "/*" []
-                      (template (io/resource "public/index.html") [_]
-                                [:#init-js] (substitute
-                                             (html [:script
-                                                    {:type "text/javascript"}
-                                                    ;; direct pass in config flags to the client atm.
-                                                    (str "topiq.core.main(\"" user "\")")])))))
+        handler (-> (routes
+                     (resources "/")
+                     (GET "/replikativ/ws" [] (-> @peer :volatile :handler))
+                     #_(GET "/auth/:token" [token] (auth-token (java.util.UUID/fromString token)))
+                     (GET "/*" []
+                          (template (io/resource "public/index.html") [_]
+                                    [:#init-js] (substitute
+                                                 (html [:script
+                                                        {:type "text/javascript"}
+                                                        ;; direct pass in config flags to the client atm.
+                                                        (str "topiq.core.main(\"" user "\")")])))))
+                    (wrap-cors :access-control-allow-origin [#"http://localhost:3449"]
+                               #_[#"http://localhost:3449/.*" #".*"]
+                               :access-control-allow-methods [:get :put :post :delete
+                                                              :upgrade]))
         stage (<?? S (s/create-stage! user peer))]
 
     (doseq [url connect]

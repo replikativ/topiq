@@ -17,6 +17,7 @@
                  [com.fzakaria/slf4j-timbre "0.3.2"]
 
                  [ring "1.5.0"] ;; implicitly needed?
+                 [ring-cors "0.1.8"]
                  [enlive "1.1.6"]
                  [compojure "1.5.1"]
 
@@ -25,7 +26,7 @@
                  [org.omcljs/om "0.9.0"]
                  [kioo "0.4.2"]
 
-                 [io.replikativ/replikativ "0.2.0-SNAPSHOT"]
+                 [io.replikativ/replikativ "0.2.2"]
                  #_[io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "2.0.1"]
                  [markdown-clj "0.9.90"]]
