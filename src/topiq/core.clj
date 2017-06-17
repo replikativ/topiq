@@ -19,7 +19,6 @@
             [org.httpkit.server :refer [run-server]]
             [postal.core :refer [send-message]]
             [replikativ.p2p.fetch :refer [fetch]]
-            [replikativ.p2p.hash :refer [ensure-hash]]
             [replikativ.p2p.hooks :refer [hook]]
             [replikativ.peer :refer [server-peer client-peer]]
             [replikativ.stage :as s]
@@ -79,8 +78,7 @@
                                                           (fn [protocol user]
                                                             (go-try
                                                              (warn "Unhandled auth triggered:" protocol user)))
-                                                          (partial auth-handler config))
-                                                 ensure-hash)))
+                                                          (partial auth-handler config)))))
         handler (-> (routes
                      (resources "/")
                      (GET "/replikativ/ws" [] (-> @peer :volatile :handler))

@@ -27,8 +27,7 @@
                  [kioo "0.4.2"]
 
                  [com.cognitect/transit-cljs "0.8.239" :scope "provided"]
-                 [io.replikativ/superv.async "0.2.8-SNAPSHOT"]
-                 [io.replikativ/replikativ "0.2.3"]
+                 [io.replikativ/replikativ "0.2.4"]
                  #_[io.replikativ/kabel-auth "0.1.0-SNAPSHOT"]
                  [com.draines/postal "2.0.1"]
                  [markdown-clj "0.9.90"]]

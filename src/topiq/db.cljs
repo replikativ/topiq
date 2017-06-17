@@ -103,7 +103,7 @@
                   (map first))]
     (go-try S (<? S (s/transact! stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                        [['(fn [old params] (d/db-with old params))
+                        [['(fn [S old params] (d/db-with old params))
                           (concat [(merge {:db/id -1
                                            :identity/id post-id
                                            :title (let [sub (str (apply str (take 160 text)))]
@@ -135,7 +135,7 @@
                   (map first))]
     (go-try S (<? S (s/transact! stage
                         [author #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                        [['(fn [old params] (d/db-with old params))
+                        [['(fn [S old params] (d/db-with old params))
                           (concat
                            [{:db/id -1
                              :identity/id argument-id
@@ -163,7 +163,7 @@
       (go-try S (<? S (s/transact! stage
                               [voter
                                #uuid "26558dfe-59bb-4de4-95c3-4028c56eb5b5"]
-                              [['(fn [old params] (d/db-with old params))
+                              [['(fn [S old params] (d/db-with old params))
                                 [{:db/id -1
                                   :identity/id (uuid [voter topiq-id])
                                   :topiq topiq-id
