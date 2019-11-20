@@ -3,8 +3,7 @@
 A social network application based on [P2P replication with CRDTs](https://github.com/replikativ/replikativ).
 
 Test p2p network at:
-- <https://topiq.es>
-- <http://topiq.polyc0l0r.net:8080> (can only auth USER@topiq.es atm.)
+- <http://www.topiq.es:8084/>
 
 ## Usage
 
